@@ -310,10 +310,10 @@
                                     <span class="text-[10px] text-gray-500">ไม่มีเก็บเงินปลายทาง</span>
                                 </div>
                             </label>
-                        <div id="promptpay-box"></div>
+                        <div id="promptpay-box" class="hidden"></div>
                         <div class="flex items-start gap-2 rounded-xl bg-[#06C755]/10 border border-[#06C755]/40 px-3 py-2 text-[11.5px] text-[#0B5E2E] font-semibold">
-                            <span class="shrink-0 rounded-md bg-[#06C755] text-white text-[9px] font-bold px-1.5 py-0.5 mt-0.5">LINE</span>
-                            <span>โอนแล้ว ส่งสลิปพร้อมเลขออเดอร์ทาง LINE ร้านเท่านั้น</span>
+                            <span class="shrink-0 rounded-md bg-[#06C755] text-white text-[9px] font-bold px-1.5 py-0.5 mt-0.5">QR</span>
+                            <span>QR โอนเงินจะขึ้นหลังกดยืนยันสั่งซื้อ · ส่งสลิปทาง LINE ร้านเท่านั้น</span>
                         </div>
                     </div>
 
@@ -336,13 +336,33 @@
 
                 <!-- ปุ่มยืนยันสั่งซื้อด้านล่าง Modal -->
                 <div class="p-4 border-t border-gray-100 bg-white">
-                    <button onclick="submitOrder()" id="submit-btn" 
-                        class="disabled:opacity-60 w-full bg-[#153D32] hover:bg-[#153D32] text-white font-bold py-3.5 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm btn-bounce transition-all">
+                    <p id="submit-hint" class="hidden text-[12px] font-semibold text-center mb-2 rounded-xl px-3 py-2"></p>
+                    <button onclick="openReview()" id="submit-btn" 
+                        class="disabled:opacity-40 disabled:cursor-not-allowed w-full bg-[#153D32] hover:bg-[#153D32] text-white font-bold py-3.5 px-4 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm btn-bounce transition-all">
                         <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
                             <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
                         </svg>
-                        <span id="submit-label">ยืนยันสั่งซื้อ</span>
+                        <span id="submit-label">ถัดไป: ดูสรุปออเดอร์</span>
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4.5 หน้าสรุปออเดอร์ + QR (ก่อนกดยืนยัน) -->
+        <div id="review-modal" class="fixed inset-0 z-[55] hidden">
+            <div onclick="closeReview()" class="absolute inset-0 bg-black/60"></div>
+            <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+                    <button onclick="closeReview()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">←</button>
+                    <div class="min-w-0">
+                        <h2 class="text-base font-bold text-gray-800">สรุปออเดอร์</h2>
+                        <p id="review-sub" class="text-xs text-[#153D32] font-medium truncate"></p>
+                    </div>
+                </div>
+                <div id="review-body" class="p-5 overflow-y-auto space-y-4 flex-1"></div>
+                <div class="p-4 border-t border-gray-100 bg-white">
+                    <button onclick="submitOrder()" id="review-confirm" class="disabled:opacity-50 w-full bg-[#06C755] text-white font-bold py-3.5 rounded-2xl shadow-md text-sm btn-bounce">ยืนยันสั่งซื้อ → ส่งเข้า LINE ร้าน</button>
+                    <p class="text-[10.5px] text-gray-400 text-center mt-1.5">กดแล้วจะเปิดแชท LINE ร้าน กด "ส่ง" แล้วแนบสลิปในแชทได้เลย</p>
                 </div>
             </div>
         </div>
@@ -369,7 +389,7 @@
                 <div id="receipt-promptpay"></div>
 
                 <!-- กล่องข้อความสรุปออเดอร์ -->
-                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3">
+                <div id="summary-box" class="bg-gray-50 border border-gray-200 rounded-2xl p-3">
                     <textarea id="order-summary-text" readonly rows="9" 
                         class="w-full bg-transparent text-xs text-gray-700 font-mono focus:outline-none resize-none"></textarea>
                 </div>
@@ -1855,12 +1875,28 @@ function ic(name, cls) {
         // ===== เมนูที่มีให้เลือกไซซ์ =====
         // id แรก = ตัวที่แสดงบนหน้าเมนู / id อื่นๆ ซ่อนไว้ ใช้เป็นตัวเลือกในหน้าต่างเมนู (แต่ละไซซ์มี id+ราคาของตัวเองในระบบ)
         const SIZE_GROUPS = [
-            { title: 'ข้าวไก่ทอดอินโด (Nasi Ayam Penyet)', sizes: [{ label: 'M', id: 34 }, { label: 'L', id: 108 }] }
+            { title: 'ข้าวไก่ทอดอินโด (Nasi Ayam Penyet)', pick: 'เลือกไซซ์', sizes: [{ label: 'M', id: 34 }, { label: 'L', id: 108 }] }
         ];
+        // เครื่องดื่มที่มีทั้งร้อนและเย็น: รวมเป็นการ์ดเดียว แล้วให้เลือกร้อน/เย็นตอนกดเข้าไป
+        function buildDrinkGroups() {
+            const by = {};
+            menuItems.filter(m => m.category === 'drinks').forEach(m => {
+                const t = /ร้อน\)?\s*$/.test(m.name) ? 'ร้อน' : /เย็น\)?\s*$/.test(m.name) ? 'เย็น' : '';
+                if (!t) return;
+                const base = m.name.replace(/\s*\(?(ร้อน|เย็น)\)?\s*$/, '').trim();
+                (by[base] = by[base] || {})[t] = m.id;
+            });
+            Object.entries(by).forEach(([base, v]) => {
+                if (v['ร้อน'] && v['เย็น']) SIZE_GROUPS.push({ title: base, pick: 'เลือก', cover: v['เย็น'], def: v['เย็น'], sizes: [{ label: '☕ ร้อน', id: v['ร้อน'] }, { label: '🧊 เย็น', id: v['เย็น'] }] });
+            });
+        }
         const groupOf = id => SIZE_GROUPS.find(g => g.sizes.some(z => z.id === id)) || null;
         const groupIds = id => { const g = groupOf(id); return g ? g.sizes.map(z => z.id) : [id]; };
         const isHiddenSize = id => { const g = groupOf(id); return !!g && g.sizes[0].id !== id; };
         const displayName = item => (groupOf(item.id) || {}).title || item.name;
+        // รูปบนการ์ด: เครื่องดื่มใช้รูปแบบเย็น
+        const coverItem = item => { const g = groupOf(item.id); return (g && g.cover && menuItems.find(m => m.id === g.cover)) || item; };
+        const defaultId = id => { const g = groupOf(id); return (g && g.def) || groupIds(id)[0]; };
         const sizeLabel = id => { const g = groupOf(id); return g ? g.sizes.find(z => z.id === id).label : ''; };
 
         // ===== ส่งออเดอร์เข้าแชท LINE ร้าน =====
@@ -2068,6 +2104,7 @@ function ic(name, cls) {
             {"id": 126, "name": "ชาเขียวเงาะ (เย็น)", "category": "drinks", "isBestseller": false, "badge": "", "price": 45, "desc": "", "image": "images/menu/drink-52.jpg", "emoji": "🧋", "bgTint": "bg-emerald-50"},
             {"id": 127, "name": "ชาเงาะ (เย็น)", "category": "drinks", "isBestseller": false, "badge": "", "price": 45, "desc": "", "image": "images/menu/drink-53.jpg", "emoji": "🧋", "bgTint": "bg-emerald-50"},
         ];
+        buildDrinkGroups();
 
         // สถานะของแอปพลิเคชัน
         let state = {
@@ -2093,6 +2130,7 @@ function ic(name, cls) {
         // สลับโหมด จัดส่งเดลิเวอรี่ / สั่งและรับที่ร้าน
         function setOrderMode(mode) {
             state.orderMode = mode;
+            setTimeout(refreshSubmitState, 0);
             if (mode === 'delivery' && !document.getElementById('cart-modal').classList.contains('hidden')) setTimeout(openPinMap, 0);
             const btnDelivery = document.getElementById('mode-delivery');
             const btnPickup = document.getElementById('mode-pickup');
@@ -2218,9 +2256,24 @@ function ic(name, cls) {
                     ${qtyControlHTML(item, qty)}
                 </div>`;
         }
+        // แถวเมนูมีรูปเล็ก (หนึ่งเมนูต่อแถว ใช้กับเครื่องดื่ม)
+        function createImgRowHTML(item) {
+            const qty = qtyOf(item.id);
+            const name = displayName(item);
+            return `
+                <div onclick="openItemSheet(${item.id})" class="cursor-pointer flex items-center gap-3 px-2.5 py-1.5 ${unavailableReason(item) ? 'opacity-60' : ''} ${qty > 0 ? 'bg-[#F1F7E1]' : ''}">
+                    <div class="relative w-11 h-11 rounded-lg overflow-hidden shrink-0">${menuImageHTML(coverItem(item), 'w-5 h-5')}</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[13px] font-semibold text-gray-800 leading-tight truncate">${esc(name)}</p>
+                        <p class="text-[12.5px] font-bold text-[#7D4427] leading-tight mt-0.5">${groupOf(item.id) ? '<span class="text-[10.5px] font-medium">เริ่ม </span>' : ''}${priceText(item)}${groupOf(item.id) && groupOf(item.id).pick === 'เลือก' ? '<span class="text-[10.5px] font-normal text-gray-400"> · ร้อน / เย็น</span>' : ''}</p>
+                    </div>
+                    ${qtyControlHTML(item, qty)}
+                </div>`;
+        }
         function sectionItemsHTML(list, cols) {
+            if (cols === 1) return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100 overflow-hidden">${list.map(i => i.image ? createImgRowHTML(i) : createTextRowHTML(i)).join('')}</div>`;
             const withImg = list.filter(i => i.image), noImg = list.filter(i => !i.image);
-            return (withImg.length ? `<div class="grid ${cols === 4 ? 'grid-cols-4 gap-1.5' : 'grid-cols-2 gap-3'}">${withImg.map(i => createMenuCardHTML(i, cols === 4)).join('')}</div>` : '')
+            return (withImg.length ? `<div class="grid ${cols === 3 ? 'grid-cols-3 gap-2' : 'grid-cols-2 gap-3'}">${withImg.map(i => createMenuCardHTML(i, cols === 3)).join('')}</div>` : '')
                 + (noImg.length ? `<div class="${withImg.length ? 'mt-3' : ''} bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100 overflow-hidden">${noImg.map(createTextRowHTML).join('')}</div>` : '');
         }
 
@@ -2230,16 +2283,16 @@ function ic(name, cls) {
             const reco = RECOMMENDED_IDS.includes(item.id);
             return `
                 <div onclick="openItemSheet(${item.id})" class="cursor-pointer bg-white ${unavailableReason(item) ? 'opacity-60' : ''} ${compact ? 'rounded-xl' : 'rounded-2xl'} shadow-sm border border-gray-100 overflow-hidden flex flex-col ${qty > 0 ? 'ring-2 ring-[#A8C455]' : ''}">
-                    <div class="relative ${compact ? 'aspect-square' : 'aspect-[16/9]'} overflow-hidden">
-                        ${menuImageHTML(item, 'w-12 h-12')}
+                    <div class="relative ${compact ? 'aspect-[5/4]' : 'aspect-[16/9]'} overflow-hidden">
+                        ${menuImageHTML(coverItem(item), 'w-12 h-12')}
                         ${item.isNew ? `<span class="absolute bottom-1 left-1 bg-[#E53935] text-white ${compact ? 'text-[8px] px-1' : 'text-[10px] px-1.5'} py-0.5 rounded-md font-bold tracking-wide shadow">NEW</span>` : ''}
                         ${reco ? `<span class="absolute top-1 left-1 bg-white/95 text-[#7D4427] rounded-full p-0.5 shadow-sm">${ic('star', 'w-2.5 h-2.5')}</span>` : ''}
                         ${qty > 0 ? `<span class="absolute top-1 right-1 min-w-5 h-5 px-1 rounded-full bg-[#7D4427] text-white text-[10px] font-bold flex items-center justify-center shadow">${qty}</span>` : ''}
                     </div>
                     <div class="${compact ? 'px-1 pt-0.5 pb-1' : 'px-2.5 pt-1.5 pb-2'} flex-1 flex flex-col">
-                        <h3 class="${compact ? 'text-[10px] min-h-[1.5rem]' : 'text-[13px] min-h-[1.9rem]'} font-semibold text-gray-800 leading-tight line-clamp-2">${esc(displayName(item))}</h3>
+                        <h3 class="${compact ? 'text-[11px] min-h-[1.6rem]' : 'text-[13px] min-h-[1.9rem]'} font-semibold text-gray-800 leading-tight line-clamp-2">${esc(displayName(item))}</h3>
                         <div class="mt-auto pt-0.5 flex items-center justify-between gap-1">
-                            <span class="${compact ? 'text-[11px]' : 'text-[15px]'} font-bold text-[#7D4427]">${groupOf(item.id) ? '<span class="text-[10px] font-medium">เริ่ม </span>' : ''}${priceText(item)}</span>
+                            <span class="${compact ? 'text-[12px]' : 'text-[15px]'} font-bold text-[#7D4427]">${groupOf(item.id) ? '<span class="text-[10px] font-medium">เริ่ม </span>' : ''}${priceText(item)}</span>
                             ${qtyControlHTML(item, qty, compact)}
                         </div>
                     </div>
@@ -2258,7 +2311,7 @@ function ic(name, cls) {
             return `
                 <div onclick="openItemSheet(${item.id})" class="cursor-pointer snap-start shrink-0 w-[40%] bg-white ${unavailableReason(item) ? 'opacity-60' : ''} rounded-xl overflow-hidden shadow-sm flex flex-col ${qty > 0 ? 'ring-2 ring-[#A8C455]' : ''}">
                     <div class="relative aspect-[4/3] overflow-hidden">
-                        ${menuImageHTML(item, 'w-10 h-10')}
+                        ${menuImageHTML(coverItem(item), 'w-10 h-10')}
                         ${qty > 0 ? `<span class="absolute top-1 right-1 min-w-5 h-5 px-1 rounded-full bg-[#7D4427] text-white text-[10px] font-bold flex items-center justify-center shadow">${qty}</span>` : ''}
                     </div>
                     <div class="p-2 flex-1 flex flex-col">
@@ -2339,7 +2392,7 @@ function ic(name, cls) {
                                     ? `<span class="text-[11px] font-semibold bg-[#E53935] text-white rounded-full px-2.5 py-0.5 whitespace-nowrap">ปิดรับแล้ว · เปิด 05:00</span>`
                                     : `<span class="text-[11px] text-white/70 truncate">${cat.subtitle}</span>`}
                             </div>
-                            ${sectionItemsHTML(itemsInCat, cat.id === 'drinks' ? 4 : 2)}
+                            ${sectionItemsHTML(itemsInCat, cat.id === 'drinks' ? 1 : 2)}
                         </section>
                     `;
                 }
@@ -2416,7 +2469,7 @@ function ic(name, cls) {
             sheet.wasInCart = sheet.draft.length > 0;
             sheet.editing = null;
             if (!sheet.draft.length) {
-                const l = { lid: newLid(), id: sheet.id, qty: 1, note: '' };
+                const l = { lid: newLid(), id: defaultId(sheet.id), qty: 1, note: '' };
                 sheet.draft.push(l);
             }
             renderItemSheet();
@@ -2457,7 +2510,7 @@ function ic(name, cls) {
         }
         function sheetAddLine() {
             if (sheet.editing) sheetSaveNote();
-            const l = { lid: newLid(), id: sheet.id, qty: 1, note: '' };
+            const l = { lid: newLid(), id: defaultId(sheet.id), qty: 1, note: '' };
             sheet.draft.push(l);
             sheetEdit(l.lid);
         }
@@ -2480,14 +2533,15 @@ function ic(name, cls) {
             document.getElementById('sheet-price').textContent = grp
                 ? grp.sizes.map(z => `${z.label} ฿${priceOf(z.id)}`).join(' • ')
                 : `฿${item.price} / ที่`;
-            document.getElementById('sheet-img').innerHTML = menuImageHTML(item, 'w-8 h-8');
+            const shown = (sheet.draft[0] && menuItems.find(m => m.id === sheet.draft[0].id)) || item;
+            document.getElementById('sheet-img').innerHTML = menuImageHTML(shown.image ? shown : item, 'w-8 h-8');
             const rows = sheet.draft.map(l => {
                 const editing = sheet.editing === l.lid;
                 const minus = l.qty === 1
                     ? `<button onclick="sheetQty('${l.lid}',-1)" aria-label="ลบ" class="w-8 h-8 flex items-center justify-center text-[#153D32]">${ic('trash', 'w-4 h-4')}</button>`
                     : `<button onclick="sheetQty('${l.lid}',-1)" aria-label="ลด" class="w-8 h-8 flex items-center justify-center text-[#153D32] text-xl font-bold">−</button>`;
                 const sizeChips = grp ? `<div class="flex items-center gap-2 mb-2.5">
-                        <span class="text-xs text-gray-500">เลือกไซซ์</span>
+                        <span class="text-xs text-gray-500">${grp.pick || 'เลือกไซซ์'}</span>
                         ${grp.sizes.map(z => `<button onclick="sheetSize('${l.lid}', ${z.id})" class="px-3.5 py-1.5 rounded-full text-sm font-bold border-2 ${l.id === z.id ? 'bg-[#153D32] text-white border-[#153D32]' : 'bg-white text-[#153D32] border-[#C6D6A8]'}">${z.label} <span class="font-medium ${l.id === z.id ? 'text-white/80' : 'text-[#7D4427]'}">฿${priceOf(z.id)}</span></button>`).join('')}
                     </div>` : '';
                 return `<div class="py-4 border-b border-gray-100">
@@ -2578,6 +2632,7 @@ function ic(name, cls) {
             document.getElementById('summary-subtotal').textContent = `฿${totalPrice.toLocaleString()}`;
             document.getElementById('summary-grand-total').textContent = `฿${totalPrice.toLocaleString()}`;
             renderPromptpayBox();
+            refreshSubmitState();
         }
         function cartTotal() { return state.cart.reduce((s, l) => { const it = menuItems.find(m => m.id === l.id); return s + (it && it.price ? it.price * l.qty : 0); }, 0); }
         function renderPromptpayBox() {
@@ -2585,13 +2640,14 @@ function ic(name, cls) {
             const sel = document.querySelector('input[name="payment"]:checked');
             const isPP = sel && sel.value.indexOf('พร้อมเพย์') >= 0;
             const total = cartTotal();
-            box.innerHTML = isPP && total > 0 ? promptpayBoxHTML(currentBranch(), total) : '';
+            box.innerHTML = ''; // QR แสดงหลังยืนยันออเดอร์เท่านั้น
         }
         document.addEventListener('change', e => { if (e.target && e.target.name === 'payment') renderPromptpayBox(); });
 
         let autoGpsTried = false;
         function openCartModal() {
             document.getElementById('cart-modal').classList.remove('hidden');
+            refreshSubmitState();
             if (state.orderMode === 'delivery') {
                 openPinMap();                                   // โชว์แผนที่ทันที
                 if (!state.gps && !autoGpsTried) { autoGpsTried = true; getLocation(); } // ดึงตำแหน่งให้อัตโนมัติครั้งแรก
@@ -2688,8 +2744,66 @@ function ic(name, cls) {
             }
             drawBranchOnMap();
             setTimeout(() => pinMap.invalidateSize(), 150);
-            setPin(start[0], start[1]);
+            if (state.gps) setPin(start[0], start[1]); else { updatePinChip(); refreshSubmitState(); }
         }
+
+        // ===== หน้าสรุปออเดอร์ (ขั้นที่ 2) =====
+        function openReview() {
+            const issue = checkoutIssue();
+            if (issue) { refreshSubmitState(); return showToast(issue.msg); }
+            const b = currentBranch();
+            const lines = state.cart.map(l => ({ l, it: menuItems.find(m => m.id === l.id) })).filter(x => x.it);
+            const total = lines.reduce((s, x) => s + x.it.price * x.l.qty, 0);
+            const delivery = state.orderMode === 'delivery';
+            const d = deliveryDistance();
+            const addr = document.getElementById('cust-address').value.trim();
+            document.getElementById('review-sub').textContent = `${b.name} · ${delivery ? 'จัดส่งเดลิเวอรี่ (ส่งฟรี)' : 'สั่งกลับบ้าน / รับที่ร้าน'}`;
+            document.getElementById('review-body').innerHTML = `
+                <div class="bg-gray-50 rounded-2xl p-3 space-y-1.5">
+                    ${lines.map(x => `<div class="flex justify-between gap-3 text-[13px]"><span class="text-gray-800"><b>${x.l.qty}×</b> ${esc(x.it.name)}${x.l.note ? `<span class="block text-[11px] text-gray-500">↳ ${esc(x.l.note)}</span>` : ''}</span><span class="font-semibold text-gray-700 shrink-0">฿${(x.it.price * x.l.qty).toLocaleString()}</span></div>`).join('')}
+                    <div class="border-t border-dashed border-gray-200 pt-1.5 flex justify-between text-[12px] text-gray-500"><span>ค่าส่ง</span><span>${delivery ? 'ฟรี' : '-'}</span></div>
+                    <div class="flex justify-between text-base font-bold"><span>ยอดโอน</span><span class="text-[#7D4427]">฿${total.toLocaleString()}</span></div>
+                </div>
+                <div class="bg-gray-50 rounded-2xl p-3 text-[12.5px] text-gray-700 space-y-1">
+                    <p>👤 ${esc(document.getElementById('cust-name').value.trim())} · 📞 ${esc(document.getElementById('cust-phone').value.trim())}</p>
+                    ${delivery ? `<p>📍 ส่งตามหมุด · ห่างจากร้าน <b>${d.toFixed(1)} กม.</b> <a href="${state.gpsLink}" target="_blank" rel="noopener" class="underline text-[#153D32]">ดูแผนที่</a></p>${addr ? `<p class="text-gray-500">${esc(addr)}</p>` : ''}` : `<p>🏠 รับที่${esc(b.name)}</p>`}
+                    ${document.getElementById('cust-note').value.trim() ? `<p>📝 ${esc(document.getElementById('cust-note').value.trim())}</p>` : ''}
+                </div>
+                <div>
+                    <p class="text-[12px] font-bold text-gray-700 mb-1.5">💳 สแกนจ่ายเข้าบัญชี${esc(b.name)}</p>
+                    ${promptpayBoxHTML(b, total)}
+                    <p class="text-[11px] text-[#0B5E2E] bg-[#06C755]/10 rounded-xl px-3 py-2 mt-2 font-semibold">แคปหน้าจอ QR แล้วสแกนจ่าย จากนั้นกดยืนยัน แล้วส่งสลิปในแชท LINE ร้าน</p>
+                </div>`;
+            document.getElementById('review-modal').classList.remove('hidden');
+        }
+        function closeReview() { document.getElementById('review-modal').classList.add('hidden'); }
+
+        // ===== ตรวจข้อมูลก่อนกดยืนยัน (ปุ่มกดได้เมื่อข้อมูลครบและอยู่ใน 5 กม.) =====
+        function checkoutIssue() {
+            if (!state.cart.length) return { msg: 'ยังไม่มีรายการในตะกร้า' };
+            if (!currentBranch()) return { msg: 'กรุณาเลือกสาขาก่อน' };
+            const blocked = state.cart.map(l => menuItems.find(m => m.id === l.id)).find(it => it && unavailableReason(it));
+            if (blocked) return { msg: `${blocked.name}: ${unavailableReason(blocked)} กรุณาลบออกจากตะกร้า`, bad: true };
+            if (!document.getElementById('cust-name').value.trim()) return { msg: 'กรอกชื่อผู้สั่ง' };
+            const ph = document.getElementById('cust-phone').value.replace(/[^0-9]/g, '');
+            if (ph.length < 9 || ph.length > 10) return { msg: 'กรอกเบอร์โทรให้ถูกต้อง' };
+            if (state.orderMode === 'delivery') {
+                const d = deliveryDistance();
+                if (d === null) return { msg: 'ปักหมุดตำแหน่งจัดส่งบนแผนที่' };
+                if (d > DELIVERY_RADIUS_KM) return { msg: `❌ อยู่นอกเขตส่ง (ห่าง ${d.toFixed(1)} กม. เกิน ${DELIVERY_RADIUS_KM} กม.) กดยืนยันไม่ได้`, bad: true };
+            }
+            return null;
+        }
+        function refreshSubmitState() {
+            const btn = document.getElementById('submit-btn'), hint = document.getElementById('submit-hint');
+            if (!btn || !hint) return;
+            const issue = checkoutIssue();
+            btn.disabled = !!issue || submitting;
+            if (!issue) { hint.className = 'hidden'; return; }
+            hint.className = 'text-[12px] font-semibold text-center mb-2 rounded-xl px-3 py-2 ' + (issue.bad ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-800');
+            hint.textContent = issue.bad ? issue.msg : 'ยังกดยืนยันไม่ได้: ' + issue.msg;
+        }
+        document.addEventListener('input', e => { if (e.target && /^cust-/.test(e.target.id)) refreshSubmitState(); });
 
         // ระยะจากสาขาถึงลูกค้า (null ถ้ายังไม่มี GPS)
         function deliveryDistance() {
@@ -2701,6 +2815,7 @@ function ic(name, cls) {
         function updateDistanceStatus() {
             const statusEl = document.getElementById('gps-status');
             if (pinMap) { drawBranchOnMap(); updatePinChip(); }
+            refreshSubmitState();
             const d = deliveryDistance();
             if (state.gps) {
                 document.getElementById('gps-btn-title').textContent = '✓ ได้ตำแหน่งแล้ว';
@@ -2817,6 +2932,7 @@ function ic(name, cls) {
         // ยืนยันสั่งซื้อ: ส่งเข้าระบบหลังร้าน (ถ้าตั้งค่า API_URL) ไม่งั้นใช้วิธีคัดลอกส่ง LINE
         async function submitOrder() {
             if (submitting) return;
+            { const issue = checkoutIssue(); if (issue) { refreshSubmitState(); return showToast(issue.msg); } }
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
             const address = document.getElementById('cust-address').value.trim();
@@ -2878,10 +2994,9 @@ function ic(name, cls) {
             let sentToSystem = false;
             if (API_URL) {
                 submitting = true;
-                const btn = document.getElementById('submit-btn');
-                const label = document.getElementById('submit-label');
+                const btn = document.getElementById('review-confirm');
                 btn.disabled = true;
-                label.textContent = 'กำลังส่งออเดอร์...';
+                btn.textContent = 'กำลังส่งออเดอร์...';
                 try {
                     // ใช้ text/plain เพื่อไม่ให้เบราว์เซอร์ทำ CORS preflight กับ Apps Script
                     const res = await fetch(API_URL, {
@@ -2900,7 +3015,7 @@ function ic(name, cls) {
                 } finally {
                     submitting = false;
                     btn.disabled = false;
-                    label.textContent = 'ยืนยันสั่งซื้อ';
+                    btn.textContent = 'ยืนยันสั่งซื้อ → ส่งเข้า LINE ร้าน';
                 }
             }
 
@@ -2924,11 +3039,13 @@ function ic(name, cls) {
             const lineText = buildSummary(order, orderId) + '\n\n💳 แตะลิงก์นี้เพื่อสแกน QR โอนเงิน:\n' + payPageUrl(orderId, currentBranch().id, order.total) + '\n\n📎 โอนแล้วส่งสลิปในแชทนี้ได้เลย';
             const lineUrl = lineChatUrl(lineText);
             document.getElementById('line-send-btn').href = lineUrl;
-            document.getElementById('line-send-label').textContent = 'ส่งออเดอร์เข้าแชท LINE ร้าน';
-            closeCartModal();
+            document.getElementById('line-send-label').textContent = 'เปิด LINE ร้าน เพื่อส่งออเดอร์และสลิป';
+            closeCartModal(); closeReview();
             document.getElementById('receipt-modal').classList.remove('hidden');
-            // เด้งไปหน้าแชท LINE ร้าน พร้อมข้อความออเดอร์ ลูกค้ากดส่งได้เลย
-            setTimeout(() => { location.href = lineUrl; }, 1200);
+            // ส่งเข้าระบบแล้ว: ไม่ต้องให้ลูกค้าคัดลอกเอง → เด้งเข้าแชท LINE ร้านพร้อมข้อความออเดอร์อัตโนมัติ
+            document.getElementById('summary-box').classList.toggle('hidden', sentToSystem);
+            document.getElementById('copy-btn').classList.toggle('hidden', sentToSystem);
+            if (sentToSystem) setTimeout(() => { location.href = lineUrl; }, 800);
         }
 
         // คัดลอกข้อความออเดอร์ลงคลิปบอร์ด
@@ -3032,7 +3149,7 @@ function ic(name, cls) {
             if (b) document.getElementById('branch-label').textContent = b.name;
             if (!showPayPageFromUrl()) openBranchPicker(!b);
             loadSoldout();
-            if (!API_URL) document.getElementById('submit-label').textContent = 'ยืนยันสั่งซื้อ (ส่งออเดอร์เข้า LINE ร้าน)';
+
         };
     </script>
 </body>
