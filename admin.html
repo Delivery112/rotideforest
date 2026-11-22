@@ -59,6 +59,7 @@
                 </p>
                 <h1 class="text-base font-bold truncate">หลังร้าน • <span id="scope-name">Roti De Forest</span></h1>
             </div>
+            <button onclick="openSoldout()" class="h-9 px-2.5 rounded-xl bg-[#BCE54B] text-[#153D32] text-[11px] font-bold btn-bounce whitespace-nowrap" title="ปิด/เปิดเมนูที่หมด">🍽️ เมนูหมด</button>
             <button onclick="toggleSound()" id="sound-btn" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="เสียงแจ้งเตือน">🔔</button>
             <button onclick="loadOrders(true)" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="รีเฟรช">🔄</button>
             <button onclick="logout()" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="ออกจากระบบ">⏻</button>
@@ -94,6 +95,29 @@
 </div>
 
 <!-- Toast -->
+
+<!-- หน้าเมนูหมด: แต่ละสาขากดปิด/เปิดเมนูเอง -->
+<div id="soldout-view" class="hidden fixed inset-0 z-40 bg-gray-50 overflow-y-auto">
+    <div class="max-w-3xl mx-auto pb-10">
+        <header class="hero-bg text-white px-4 pt-4 pb-3 sticky top-0 z-10 shadow-md space-y-2">
+            <div class="flex items-center gap-2">
+                <button onclick="closeSoldout()" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce">←</button>
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-base font-bold">🍽️ เมนูหมด</h1>
+                    <p class="text-[11px] text-white/70">ปิดสวิตช์ = ลูกค้าสั่งไม่ได้ทันที · เปิดกลับเมื่อมีของ</p>
+                </div>
+            </div>
+            <select id="so-branch" onchange="loadSoldoutMenu()" class="w-full rounded-xl px-3 py-2 text-sm text-gray-900"></select>
+            <input id="so-search" oninput="renderSoldout()" placeholder="ค้นหาเมนู..." class="w-full rounded-xl px-3 py-2 text-sm text-gray-900">
+            <div class="flex gap-2 text-[11px]">
+                <button onclick="app.soOnlyOff=false;renderSoldout()" id="so-all" class="px-3 py-1 rounded-full bg-white text-[#153D32] font-bold">ทั้งหมด</button>
+                <button onclick="app.soOnlyOff=true;renderSoldout()" id="so-off" class="px-3 py-1 rounded-full bg-white/15">เฉพาะที่หมด</button>
+            </div>
+        </header>
+        <div id="so-list" class="px-4 pt-3 space-y-2"><p class="text-center text-gray-400 py-10 text-sm">กำลังโหลด...</p></div>
+    </div>
+</div>
+
 <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <script>
@@ -473,6 +497,58 @@
             : Date.parse(b.createdAt) - Date.parse(a.createdAt));
         document.getElementById('order-list').innerHTML = sorted.map(orderCard).join('');
         document.getElementById('empty-state').classList.toggle('hidden', sorted.length > 0);
+    }
+
+
+    /* ---------- เมนูหมด ---------- */
+    function openSoldout() {
+        const sel = document.getElementById('so-branch');
+        const list = app.scope === 'ALL' ? app.branches : app.branches.filter(b => b.id === app.scope);
+        const opts = list.length ? list : [{ id: app.scope, name: branchName(app.scope) }];
+        sel.innerHTML = opts.map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+        if (app.branchFilter !== 'all' && opts.some(b => b.id === app.branchFilter)) sel.value = app.branchFilter;
+        sel.disabled = opts.length < 2;
+        document.getElementById('soldout-view').classList.remove('hidden');
+        loadSoldoutMenu();
+    }
+    function closeSoldout() { document.getElementById('soldout-view').classList.add('hidden'); }
+    async function loadSoldoutMenu() {
+        const el = document.getElementById('so-list');
+        el.innerHTML = '<p class="text-center text-gray-400 py-10 text-sm">กำลังโหลด...</p>';
+        try {
+            const r = await api({ action: 'menuStatus', pin: app.pin, branch: document.getElementById('so-branch').value });
+            app.soItems = r.items || [];
+            renderSoldout();
+        } catch (ex) { el.innerHTML = `<p class="text-center text-red-600 py-10 text-sm">${esc(ex.message)}</p>`; }
+    }
+    function renderSoldout() {
+        const q = document.getElementById('so-search').value.trim().toLowerCase();
+        document.getElementById('so-all').className = 'px-3 py-1 rounded-full ' + (!app.soOnlyOff ? 'bg-white text-[#153D32] font-bold' : 'bg-white/15');
+        document.getElementById('so-off').className = 'px-3 py-1 rounded-full ' + (app.soOnlyOff ? 'bg-white text-[#153D32] font-bold' : 'bg-white/15');
+        const items = (app.soItems || []).filter(i => (!q || i.name.toLowerCase().includes(q)) && (!app.soOnlyOff || i.soldout));
+        const offCount = (app.soItems || []).filter(i => i.soldout).length;
+        document.getElementById('so-off').textContent = 'เฉพาะที่หมด' + (offCount ? ` (${offCount})` : '');
+        document.getElementById('so-list').innerHTML = items.length ? items.map(i => `
+            <div class="bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 shadow-sm ${i.soldout ? 'ring-1 ring-red-200' : ''}">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold ${i.soldout ? 'text-gray-400 line-through' : 'text-gray-800'} truncate">${esc(i.name)}</p>
+                    <p class="text-[11px] ${i.soldout ? 'text-red-600 font-bold' : 'text-gray-400'}">${i.soldout ? 'หมด · ลูกค้าสั่งไม่ได้' : '฿' + i.price}</p>
+                </div>
+                <button onclick="toggleSoldout(${i.id})" ${app.busy.has('so' + i.id) ? 'disabled' : ''} aria-label="เปิดปิดเมนู"
+                    class="relative w-12 h-7 rounded-full transition ${i.soldout ? 'bg-gray-300' : 'bg-[#153D32]'} disabled:opacity-50 shrink-0">
+                    <span class="absolute top-0.5 ${i.soldout ? 'left-0.5' : 'left-[22px]'} w-6 h-6 rounded-full bg-white shadow transition-all"></span>
+                </button>
+            </div>`).join('') : '<p class="text-center text-gray-400 py-10 text-sm">ไม่มีเมนูที่ตรงกับเงื่อนไข</p>';
+    }
+    async function toggleSoldout(id) {
+        const it = (app.soItems || []).find(i => i.id === id); if (!it) return;
+        const next = !it.soldout;
+        it.soldout = next; app.busy.add('so' + id); renderSoldout();
+        try {
+            await api({ action: 'setSoldout', pin: app.pin, branch: document.getElementById('so-branch').value, id, soldout: next });
+            toast(next ? `ปิด "${it.name}" แล้ว (หมด)` : `เปิด "${it.name}" แล้ว`);
+        } catch (ex) { it.soldout = !next; toast(ex.message); }
+        finally { app.busy.delete('so' + id); renderSoldout(); }
     }
 
     /* ---------- start ---------- */

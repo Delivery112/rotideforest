@@ -1906,6 +1906,7 @@ function ic(name, cls) {
         function isMorningOpen() { const h = bkkHour(); return h >= MORNING_START_HOUR && h < MORNING_END_HOUR; }
         function inBranch(item) { return !item.branches || !state.branch || item.branches.includes(state.branch); }
         function unavailableReason(item) {
+            if (state.soldout && state.soldout.has(item.id)) return 'หมดแล้ว';
             if (item.morning && !isMorningOpen()) return 'ขายถึงเที่ยง';
             if (item.price == null) return 'รอราคา';
             if (item.branches && state.branch && !item.branches.includes(state.branch)) return 'ไม่มีที่สาขานี้';
@@ -2362,7 +2363,20 @@ function ic(name, cls) {
             return out;
         }
         function refreshCart() { renderMenu(); updateCartUI(); }
-        setInterval(() => { if (!document.hidden) renderMenu(); }, 60000);
+        setInterval(() => { if (!document.hidden) { renderMenu(); loadSoldout(); } }, 60000);
+        // เมนูหมดของสาขาที่เลือก (สาขากดปิดเองในหน้าหลังร้าน)
+        async function loadSoldout() {
+            const b = currentBranch();
+            if (!API_URL || !b) return;
+            try {
+                const r = await (await fetch(`${API_URL}?action=soldout&b=${encodeURIComponent(b.id)}`)).json();
+                if (!r || !r.ok) return;
+                const next = new Set((r.ids || []).map(Number));
+                const changed = !state.soldout || next.size !== state.soldout.size || [...next].some(x => !state.soldout.has(x));
+                state.soldout = next;
+                if (changed) { renderMenu(); updateCartUI(); }
+            } catch (e) {}
+        }
 
         // ปุ่ม + บนการ์ด: เพิ่ม 1 ที่ (แบบไม่มีรายละเอียดเพิ่มเติม)
         function quickAdd(id) {
@@ -2750,6 +2764,7 @@ function ic(name, cls) {
             if (!b) return;
             const changed = state.branch && state.branch !== id;
             state.branch = id;
+            state.soldout = new Set(); loadSoldout();
             storageSet('rd_branch', id);
             document.getElementById('branch-label').textContent = b.name;
             document.getElementById('branch-modal').dataset.force = '';
@@ -3016,6 +3031,7 @@ function ic(name, cls) {
             const b = currentBranch();
             if (b) document.getElementById('branch-label').textContent = b.name;
             if (!showPayPageFromUrl()) openBranchPicker(!b);
+            loadSoldout();
             if (!API_URL) document.getElementById('submit-label').textContent = 'ยืนยันสั่งซื้อ (ส่งออเดอร์เข้า LINE ร้าน)';
         };
     </script>
