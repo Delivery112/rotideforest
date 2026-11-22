@@ -303,6 +303,10 @@
                                 </div>
                             </label>
                         <div id="promptpay-box"></div>
+                        <div class="flex items-start gap-2 rounded-xl bg-[#06C755]/10 border border-[#06C755]/40 px-3 py-2 text-[11.5px] text-[#0B5E2E] font-semibold">
+                            <span class="shrink-0 rounded-md bg-[#06C755] text-white text-[9px] font-bold px-1.5 py-0.5 mt-0.5">LINE</span>
+                            <span>โอนแล้ว ส่งสลิปพร้อมเลขออเดอร์ทาง LINE ร้านเท่านั้น</span>
+                        </div>
                     </div>
 
                     <!-- สรุปยอดเงิน -->
@@ -1810,13 +1814,13 @@ function ic(name, cls) {
                         <p class="font-semibold text-gray-800 text-xs">${esc(title)}</p>
                         <p>${esc(sub)}</p>
                         <p class="text-[15px] font-bold text-[#7D4427] pt-0.5">฿${Number(amount).toLocaleString()}</p>
-                        <p class="text-[10px] text-gray-400 leading-tight">แคปหน้าจอแล้วสแกนในแอปธนาคาร ยอดขึ้นอัตโนมัติ</p>
+                        <p class="text-[10px] text-gray-400 leading-tight">แคปหน้าจอแล้วสแกนในแอปธนาคาร ยอดขึ้นอัตโนมัติ · ส่งสลิปทาง LINE เท่านั้น</p>
                     </div>
                 </div>`;
         }
         function promptpayBoxHTML(branch, amount) {
             if (!branch) return '';
-            if (!branch.promptpay && !branch.qrPayload) return `<div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] px-3 py-2">${esc(branch.name)} ยังไม่ได้ตั้งค่าพร้อมเพย์ ร้านจะแจ้งเลขบัญชีในแชท LINE</div>`;
+            if (!branch.promptpay && !branch.qrPayload) return `<div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] px-3 py-2">${esc(branch.name)} ยังไม่ได้ตั้งค่าพร้อมเพย์ ร้านจะแจ้งเลขบัญชีในแชท LINE (ส่งสลิปทาง LINE เท่านั้น)</div>`;
             if (branch.qrPayload) return qrCardHTML(emvWithAmount(branch.qrPayload, amount), branch.promptpayName ? 'ชื่อบัญชี: ' + branch.promptpayName : (branch.qrName || branch.name), branch.promptpayName ? (branch.qrName || branch.name) : (branch.qrSub || ''), amount);
             const masked = branch.promptpay.replace(/\D/g, '').replace(/^(\d{3})\d+(\d{3})$/, '$1-xxx-$2');
             return `<div class="rounded-2xl border border-[#153D32]/15 bg-white p-3 flex gap-3 items-center">
@@ -1826,7 +1830,7 @@ function ic(name, cls) {
                         <p class="font-semibold text-gray-800 text-xs truncate">${esc(branch.promptpayName || branch.name)}</p>
                         <p>พร้อมเพย์ ${masked}</p>
                         <p class="text-[15px] font-bold text-[#7D4427] pt-0.5">฿${Number(amount).toLocaleString()}</p>
-                        <p class="text-[10px] text-gray-400 leading-tight">แคปหน้าจอแล้วสแกนในแอปธนาคาร ยอดขึ้นอัตโนมัติ</p>
+                        <p class="text-[10px] text-gray-400 leading-tight">แคปหน้าจอแล้วสแกนในแอปธนาคาร ยอดขึ้นอัตโนมัติ · ส่งสลิปทาง LINE เท่านั้น</p>
                     </div>
                 </div>`;
         }
@@ -1863,6 +1867,16 @@ function ic(name, cls) {
             return '';
         }
         const priceText = item => item.price == null ? '฿ —' : '฿' + item.price;
+
+        // รูปเมนู: ต่อท้ายเวอร์ชันกันมือถือจำรูปเก่าที่เคยโหลดไม่ขึ้น และลองโหลดซ้ำก่อนซ่อนรูป
+        const IMG_VERSION = '20261122b';
+        function imgUrl(src) { return /^https?:/.test(src) ? src : src + '?v=' + IMG_VERSION; }
+        function imgRetry(el) {
+            const n = Number(el.dataset.retry || 0);
+            if (n >= 2) { el.remove(); return; }
+            el.dataset.retry = n + 1;
+            setTimeout(() => { el.src = el.src.split('&r=')[0] + '&r=' + Date.now(); }, 800 * (n + 1));
+        }
 
         // ข้อมูลหมวดหมู่เมนู
         const categories = [
@@ -2120,7 +2134,7 @@ function ic(name, cls) {
         // รูปเมนู: รูปจริงถ้ามี ไม่งั้นไอคอนของหมวด
         function menuImageHTML(item, iconCls) {
             return `<div class="absolute inset-0 bg-[#E8EFDC] flex items-center justify-center text-[#153D32]/45">${ic(placeholderIcon(item), iconCls)}</div>`
-                + (item.image ? `<img src="${esc(item.image)}" alt="${esc(item.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" class="absolute inset-0 w-full h-full object-cover">` : '');
+                + (item.image ? `<img src="${esc(imgUrl(item.image))}" alt="${esc(item.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="imgRetry(this)" class="absolute inset-0 w-full h-full object-cover">` : '');
         }
 
         // ปุ่ม + (ยังไม่มีในตะกร้า) หรือ วงกลมจำนวน (กดแล้วเปิดหน้าต่างรายละเอียด)
@@ -2773,7 +2787,7 @@ function ic(name, cls) {
             document.getElementById('receipt-order-id').textContent = orderId || '-';
             if (sentToSystem) {
                 document.getElementById('receipt-title').textContent = 'ส่งออเดอร์เข้าร้านแล้ว!';
-                document.getElementById('receipt-subtitle').textContent = 'ร้านจะเริ่มทำเร็วๆ นี้ ถ้าโอนพร้อมเพย์ ส่งสลิปพร้อมเลขออเดอร์ทาง LINE ได้เลยครับ';
+                document.getElementById('receipt-subtitle').textContent = 'ร้านจะเริ่มทำเร็วๆ นี้ กรุณาส่งสลิปโอนเงินพร้อมเลขออเดอร์ทาง LINE ร้านเท่านั้น';
                 // ล้างตะกร้าทันทีกันกดสั่งซ้ำ
                 state.cart = [];
                 renderMenu();
