@@ -1899,6 +1899,21 @@ function ic(name, cls) {
         const defaultId = id => { const g = groupOf(id); return (g && g.def) || groupIds(id)[0]; };
         const sizeLabel = id => { const g = groupOf(id); return g ? g.sizes.find(z => z.id === id).label : ''; };
 
+        // ===== LIFF: เปิดหน้าสั่งอาหารในแอป LINE → บอทส่งการ์ดโอนเงินให้เองโดยลูกค้าไม่ต้องกดส่ง =====
+        // ใส่ LIFF ID (เช่น '2001234567-AbCdEfGh') หลังสร้าง LIFF ใน LINE Developers · เว้นว่าง = ใช้แบบเดิม
+        const LIFF_ID = '';
+        let liffReady = false;
+        function liffIdToken() { try { return liffReady && liff.isLoggedIn() ? (liff.getIDToken() || '') : ''; } catch (e) { return ''; } }
+        async function initLiff() {
+            if (!LIFF_ID) return;
+            try {
+                await new Promise((ok, fail) => { const js = document.createElement('script'); js.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js'; js.onload = ok; js.onerror = fail; document.head.appendChild(js); });
+                await liff.init({ liffId: LIFF_ID });
+                liffReady = true;
+                if (liff.isInClient() && !liff.isLoggedIn()) liff.login();
+            } catch (e) { console.warn('LIFF', e); }
+        }
+
         // ===== ส่งออเดอร์เข้าแชท LINE ร้าน =====
         // ใส่ Basic ID ของ LINE OA ร้าน (ขึ้นต้นด้วย @ ดูได้ที่มุมซ้ายบนของ LINE OA Manager) เช่น '@123abcde'
         const LINE_OA_ID = '@667swyuo';
@@ -2986,12 +3001,14 @@ function ic(name, cls) {
                 address: state.orderMode === 'delivery' ? address : '',
                 gpsLink: state.orderMode === 'delivery' ? state.gpsLink : '',
                 note, payment, items, total,
-                branch: state.branch
+                branch: state.branch,
+                idToken: liffIdToken()
             };
             storageSet('rd_customer', { name, phone, address });
 
             let orderId = '';
             let sentToSystem = false;
+            let cardSent = false;
             if (API_URL) {
                 submitting = true;
                 const btn = document.getElementById('review-confirm');
@@ -3007,6 +3024,7 @@ function ic(name, cls) {
                     const data = await res.json();
                     if (!data.ok) throw new Error(data.error || 'ส่งออเดอร์ไม่สำเร็จ');
                     orderId = data.orderId;
+                    cardSent = !!data.cardSent;
                     order.total = data.total; // ยอดที่ระบบคิดจริง
                     sentToSystem = true;
                     storageSet('rd_last_order', { orderId, at: Date.now() });
@@ -3036,7 +3054,10 @@ function ic(name, cls) {
             }
             document.getElementById('receipt-promptpay').innerHTML = payment.indexOf('พร้อมเพย์') >= 0 && order.total > 0
                 ? `<p class="text-[11px] font-semibold text-gray-600 mb-1.5">สแกนจ่ายเข้าบัญชี${esc(currentBranch().name)}</p>` + promptpayBoxHTML(currentBranch(), order.total) : '';
-            const lineText = buildSummary(order, orderId) + '\n\n💳 แตะลิงก์นี้เพื่อสแกน QR โอนเงิน:\n' + payPageUrl(orderId, currentBranch().id, order.total) + '\n\n📎 โอนแล้วส่งสลิปในแชทนี้ได้เลย';
+            // ส่งเข้าระบบแล้ว: ข้อความสั้นๆ แค่เลขออเดอร์ → บอทตอบการ์ด "โอนเงิน + แนบสลิป" ทันที
+            const lineText = sentToSystem
+                ? `🧾 สั่งออเดอร์ ${orderId}`
+                : buildSummary(order, orderId);
             const lineUrl = lineChatUrl(lineText);
             document.getElementById('line-send-btn').href = lineUrl;
             document.getElementById('line-send-label').textContent = 'เปิด LINE ร้าน เพื่อส่งออเดอร์และสลิป';
@@ -3045,7 +3066,13 @@ function ic(name, cls) {
             // ส่งเข้าระบบแล้ว: ไม่ต้องให้ลูกค้าคัดลอกเอง → เด้งเข้าแชท LINE ร้านพร้อมข้อความออเดอร์อัตโนมัติ
             document.getElementById('summary-box').classList.toggle('hidden', sentToSystem);
             document.getElementById('copy-btn').classList.toggle('hidden', sentToSystem);
-            if (sentToSystem) setTimeout(() => { location.href = lineUrl; }, 800);
+            if (sentToSystem) setTimeout(() => {
+                if (cardSent) {
+                    // บอทส่งการ์ดเข้าแชทแล้ว: กลับไปหน้าแชท LINE ร้านเลย (ไม่ต้องกดส่งอะไร)
+                    try { if (liff.isInClient()) return liff.closeWindow(); } catch (e) {}
+                    location.href = lineChatUrl('');
+                } else location.href = lineUrl;
+            }, 800);
         }
 
         // คัดลอกข้อความออเดอร์ลงคลิปบอร์ด
@@ -3148,6 +3175,7 @@ function ic(name, cls) {
             const b = currentBranch();
             if (b) document.getElementById('branch-label').textContent = b.name;
             if (!showPayPageFromUrl()) openBranchPicker(!b);
+            initLiff();
             loadSoldout();
 
         };
