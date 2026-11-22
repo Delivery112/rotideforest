@@ -280,7 +280,7 @@
                                     <span id="gps-btn-sub" class="block text-[11px] text-gray-500">ไรเดอร์จะส่งตรงหมุดนี้ ไม่ต้องพิมพ์ที่อยู่ยาว</span>
                                 </span>
                             </button>
-                            <button type="button" id="pin-open-btn" onclick="openPinMap()" class="w-full mb-2 text-[12px] font-semibold text-[#153D32] underline underline-offset-2">หรือ ปักหมุดเองบนแผนที่</button>
+                            <button type="button" id="pin-open-btn" onclick="openPinMap()" class="hidden w-full mb-2 text-[12px] font-semibold text-[#153D32] underline underline-offset-2">หรือ ปักหมุดเองบนแผนที่</button>
                             <div id="pin-map-wrap" class="hidden mb-2">
                                 <div class="relative rounded-2xl overflow-hidden ring-1 ring-gray-200">
                                     <div id="pin-map" class="w-full h-60 bg-[#EEF3E6]"></div>
@@ -379,9 +379,9 @@
                         class="w-full py-3 bg-[#153D32] hover:bg-[#153D32] text-white rounded-xl text-xs font-bold shadow-sm transition-all">
                         <span class="inline-flex items-center gap-1.5"><span data-ic="clipboard" data-cls="w-3.5 h-3.5"></span>คัดลอกรายละเอียดออเดอร์</span>
                     </button>
-                    <a href="https://lin.ee/6gB6s9c" target="_blank" rel="noopener noreferrer"
+                    <a id="line-send-btn" href="https://lin.ee/6gB6s9c" rel="noopener noreferrer"
                         class="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all">
-                        <span data-ic="chat" data-cls="w-3.5 h-3.5"></span><span>เปิดแชท LINE ร้าน Roti Deforest</span>
+                        <span data-ic="chat" data-cls="w-3.5 h-3.5"></span><span id="line-send-label">เปิดแชท LINE ร้าน Roti Deforest</span>
                     </a>
                     <button onclick="finishAndReset()" class="w-full py-2 text-xs text-gray-400 hover:text-gray-600">
                         ปิดหน้าต่าง
@@ -1863,6 +1863,43 @@ function ic(name, cls) {
         const displayName = item => (groupOf(item.id) || {}).title || item.name;
         const sizeLabel = id => { const g = groupOf(id); return g ? g.sizes.find(z => z.id === id).label : ''; };
 
+        // ===== ส่งออเดอร์เข้าแชท LINE ร้าน =====
+        // ใส่ Basic ID ของ LINE OA ร้าน (ขึ้นต้นด้วย @ ดูได้ที่มุมซ้ายบนของ LINE OA Manager) เช่น '@123abcde'
+        const LINE_OA_ID = '@667swyuo';
+        function lineChatUrl(text) {
+            if (LINE_OA_ID) return 'https://line.me/R/oaMessage/' + encodeURIComponent(LINE_OA_ID) + '/' + (text ? '?' + encodeURIComponent(text) : '');
+            return text ? 'https://line.me/R/share?text=' + encodeURIComponent(text) : 'https://lin.ee/6gB6s9c';
+        }
+        function payPageUrl(orderId, branchId, total) {
+            return location.origin + location.pathname + '?pay=' + encodeURIComponent(orderId || '') + '&b=' + encodeURIComponent(branchId) + '&t=' + Math.round(total);
+        }
+        // หน้าโอนเงิน: เปิดจากลิงก์ในแชท LINE (…?pay=PTN1122-004&b=pattani&t=85)
+        function showPayPageFromUrl() {
+            const q = new URLSearchParams(location.search);
+            if (!q.has('pay')) return false;
+            const b = BRANCHES.find(x => x.id === q.get('b')); const t = Number(q.get('t')) || 0;
+            if (!b || !t) return false;
+            const id = q.get('pay');
+            const el = document.createElement('div');
+            el.id = 'pay-page';
+            el.className = 'fixed inset-0 z-[90] bg-black/50 flex items-end sm:items-center justify-center';
+            el.innerHTML = `<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 max-h-[92vh] overflow-y-auto">
+                    <div class="text-center">
+                        <p class="text-[11px] text-gray-500">โอนเงินออเดอร์</p>
+                        <p class="text-2xl font-extrabold text-[#153D32]">${esc(id || '-')}</p>
+                        <p class="text-[12px] text-gray-600">${esc(b.name)}</p>
+                    </div>
+                    ${promptpayBoxHTML(b, t)}
+                    <div class="rounded-xl bg-[#06C755]/10 border border-[#06C755]/40 px-3 py-2 text-[12px] text-[#0B5E2E] font-semibold">
+                        1) แคปหน้าจอ QR แล้วสแกนจ่ายในแอปธนาคาร<br>2) กลับไปแชท LINE ร้าน แล้วส่งสลิปพร้อมเลขออเดอร์
+                    </div>
+                    <a href="${lineChatUrl('')}" class="w-full py-3 bg-[#06C755] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5">${ic('chat', 'w-4 h-4')}<span>กลับไปแชท LINE เพื่อส่งสลิป</span></a>
+                    <button onclick="document.getElementById('pay-page').remove(); history.replaceState(null, '', location.pathname); openBranchPicker(!currentBranch());" class="w-full py-2 text-xs text-gray-400">ไปหน้าเมนู</button>
+                </div>`;
+            document.body.appendChild(el);
+            return true;
+        }
+
         // ===== เมนูมื้อเช้า / เมนูเฉพาะสาขา =====
         const MORNING_START_HOUR = 5, MORNING_END_HOUR = 12; // ขาย 05:00–11:59 (เวลาไทย)
         function bkkHour() { return Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Bangkok' }).format(new Date())); }
@@ -2055,6 +2092,7 @@ function ic(name, cls) {
         // สลับโหมด จัดส่งเดลิเวอรี่ / สั่งและรับที่ร้าน
         function setOrderMode(mode) {
             state.orderMode = mode;
+            if (mode === 'delivery' && !document.getElementById('cart-modal').classList.contains('hidden')) setTimeout(openPinMap, 0);
             const btnDelivery = document.getElementById('mode-delivery');
             const btnPickup = document.getElementById('mode-pickup');
             const promoText = document.getElementById('promo-text');
@@ -2537,8 +2575,13 @@ function ic(name, cls) {
         }
         document.addEventListener('change', e => { if (e.target && e.target.name === 'payment') renderPromptpayBox(); });
 
+        let autoGpsTried = false;
         function openCartModal() {
             document.getElementById('cart-modal').classList.remove('hidden');
+            if (state.orderMode === 'delivery') {
+                openPinMap();                                   // โชว์แผนที่ทันที
+                if (!state.gps && !autoGpsTried) { autoGpsTried = true; getLocation(); } // ดึงตำแหน่งให้อัตโนมัติครั้งแรก
+            }
         }
 
         function closeCartModal() {
@@ -2614,8 +2657,8 @@ function ic(name, cls) {
         async function openPinMap() {
             const wrap = document.getElementById('pin-map-wrap');
             wrap.classList.remove('hidden');
-            document.getElementById('pin-open-btn').classList.add('hidden');
-            try { await loadLeaflet(); } catch (e) { wrap.classList.add('hidden'); document.getElementById('pin-open-btn').classList.remove('hidden'); return showToast('โหลดแผนที่ไม่ได้ ลองใหม่อีกครั้ง'); }
+            
+            try { await loadLeaflet(); } catch (e) { wrap.classList.add('hidden'); return showToast('โหลดแผนที่ไม่ได้ ลองใหม่อีกครั้ง'); }
             const b = currentBranch() || BRANCHES[0];
             const start = state.gps ? [state.gps.lat, state.gps.lng] : [b.lat, b.lng];
             if (!pinMap) {
@@ -2863,8 +2906,14 @@ function ic(name, cls) {
             }
             document.getElementById('receipt-promptpay').innerHTML = payment.indexOf('พร้อมเพย์') >= 0 && order.total > 0
                 ? `<p class="text-[11px] font-semibold text-gray-600 mb-1.5">สแกนจ่ายเข้าบัญชี${esc(currentBranch().name)}</p>` + promptpayBoxHTML(currentBranch(), order.total) : '';
+            const lineText = buildSummary(order, orderId) + '\n\n💳 แตะลิงก์นี้เพื่อสแกน QR โอนเงิน:\n' + payPageUrl(orderId, currentBranch().id, order.total) + '\n\n📎 โอนแล้วส่งสลิปในแชทนี้ได้เลย';
+            const lineUrl = lineChatUrl(lineText);
+            document.getElementById('line-send-btn').href = lineUrl;
+            document.getElementById('line-send-label').textContent = 'ส่งออเดอร์เข้าแชท LINE ร้าน';
             closeCartModal();
             document.getElementById('receipt-modal').classList.remove('hidden');
+            // เด้งไปหน้าแชท LINE ร้าน พร้อมข้อความออเดอร์ ลูกค้ากดส่งได้เลย
+            setTimeout(() => { location.href = lineUrl; }, 1200);
         }
 
         // คัดลอกข้อความออเดอร์ลงคลิปบอร์ด
@@ -2966,7 +3015,7 @@ function ic(name, cls) {
             // ทุกครั้งที่เข้าเว็บ ให้เลือกสาขาก่อน (สาขาที่เคยสั่งจะขึ้นไว้บนสุด)
             const b = currentBranch();
             if (b) document.getElementById('branch-label').textContent = b.name;
-            openBranchPicker(!b);
+            if (!showPayPageFromUrl()) openBranchPicker(!b);
             if (!API_URL) document.getElementById('submit-label').textContent = 'ยืนยันสั่งซื้อ (ส่งออเดอร์เข้า LINE ร้าน)';
         };
     </script>
