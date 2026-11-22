@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>หลังร้าน • Roti Deforest Pattani</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @font-face { font-family: 'Opun'; font-weight: 400; font-display: swap; src: local('Opun Regular'), url('fonts/Opun-Regular.woff2') format('woff2'); }
+        @font-face { font-family: 'Opun'; font-weight: 500; font-display: swap; src: local('Opun Medium'), url('fonts/Opun-Medium.woff2') format('woff2'); }
+        @font-face { font-family: 'Opun'; font-weight: 600; font-display: swap; src: local('Opun SemiBold'), url('fonts/Opun-SemiBold.woff2') format('woff2'); }
+        @font-face { font-family: 'Opun'; font-weight: 700; font-display: swap; src: local('Opun Bold'), url('fonts/Opun-Bold.woff2') format('woff2'); }
+        body, button, input, textarea, select { font-family: 'Opun', 'Prompt', sans-serif; }
+        body { background: #E4E6DA; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
+        .btn-bounce:active { transform: scale(0.95); transition: transform .1s; }
+        @keyframes pulseNew { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,.5);} 50% { box-shadow: 0 0 0 6px rgba(245,158,11,0);} }
+        .is-new { animation: pulseNew 1.6s ease-in-out 4; }
+        .hero-bg { background: linear-gradient(135deg, #153D32 0%, #153D32 100%); }
+    </style>
+</head>
+<body class="text-gray-800 antialiased">
+
+<!-- ===== หน้าเข้าสู่ระบบ ===== -->
+<div id="login-view" class="min-h-screen flex items-center justify-center p-6 hero-bg">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <div class="text-center">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-[#153D32] flex items-center justify-center text-2xl mb-2">🔐</div>
+            <h1 class="text-lg font-bold">หลังร้าน Roti Deforest</h1>
+            <p class="text-xs text-gray-500">ใส่รหัสร้านเพื่อดูออเดอร์</p>
+        </div>
+        <form onsubmit="login(event)" class="space-y-3">
+            <input id="pin-input" type="password" inputmode="numeric" autocomplete="current-password" placeholder="รหัสร้าน"
+                class="w-full text-center tracking-[0.4em] text-lg border border-gray-200 rounded-2xl py-3 focus:outline-none focus:border-[#153D32]">
+            <button id="login-btn" class="w-full bg-[#153D32] hover:bg-[#0F2E25] text-white font-bold py-3 rounded-2xl btn-bounce disabled:opacity-60">
+                เข้าสู่ระบบ
+            </button>
+            <p id="login-error" class="text-xs text-[#7D4427] text-center hidden"></p>
+        </form>
+        <p id="config-warning" class="hidden text-[11px] text-[#7D4427] bg-amber-50 rounded-xl p-2 text-center">
+            ยังไม่ได้ใส่ API_URL ในไฟล์ admin.html
+        </p>
+    </div>
+</div>
+
+<!-- ===== หน้าหลังร้าน ===== -->
+<div id="app-view" class="hidden max-w-3xl mx-auto min-h-screen bg-gray-50 pb-10">
+    <header class="hero-bg text-white px-4 pt-4 pb-3 sticky top-0 z-30 shadow-md">
+        <div class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+                <p class="text-[11px] text-[#BCE54B] flex items-center gap-1.5">
+                    <span id="live-dot" class="inline-block w-2 h-2 rounded-full bg-green-400"></span>
+                    <span id="sync-text">กำลังโหลด...</span>
+                </p>
+                <h1 class="text-base font-bold truncate">หลังร้าน • <span id="scope-name">Roti De Forest</span></h1>
+            </div>
+            <button onclick="toggleSound()" id="sound-btn" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="เสียงแจ้งเตือน">🔔</button>
+            <button onclick="loadOrders(true)" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="รีเฟรช">🔄</button>
+            <button onclick="logout()" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="ออกจากระบบ">⏻</button>
+        </div>
+
+        <!-- สรุปยอดวันนี้ -->
+        <div class="grid grid-cols-3 gap-2 mt-3">
+            <div class="bg-white/10 rounded-2xl px-3 py-2">
+                <p class="text-[10px] text-[#BCE54B]">ออเดอร์วันนี้</p>
+                <p id="stat-count" class="text-lg font-bold">0</p>
+            </div>
+            <div class="bg-white/10 rounded-2xl px-3 py-2">
+                <p class="text-[10px] text-[#BCE54B]">ยอดขายวันนี้</p>
+                <p id="stat-sales" class="text-lg font-bold">฿0</p>
+            </div>
+            <div class="bg-[#BCE54B]/90 text-gray-900 rounded-2xl px-3 py-2">
+                <p class="text-[10px] font-medium">ต้องจัดการ</p>
+                <p id="stat-pending" class="text-lg font-bold">0</p>
+            </div>
+        </div>
+
+        <!-- แท็บสถานะ -->
+        <div id="branch-tabs" class="hidden flex gap-2 overflow-x-auto no-scrollbar mt-3 pb-0.5"></div>
+        <div id="status-tabs" class="flex gap-2 overflow-x-auto no-scrollbar mt-2 pb-0.5"></div>
+    </header>
+
+    <main id="order-list" class="px-4 pt-4 space-y-3"></main>
+
+    <div id="empty-state" class="hidden text-center py-16 text-gray-400">
+        <div class="text-4xl mb-2">🍃</div>
+        <p class="text-sm">ยังไม่มีออเดอร์ในหมวดนี้</p>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<script>
+    // ===== ตั้งค่าระบบ =====
+    // ใช้ URL เดียวกับใน index.html (Web app ของ Apps Script ลงท้ายด้วย /exec)
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxQ62teRPWB9Z8NjR_3TXqGG8SJTR3AjOYvOAK1lPk_kyENb15OVQTHb41iRNGRZsLlRg/exec';
+    const POLL_MS = 15000;     // ดึงออเดอร์ใหม่ทุก 15 วินาที
+    const HISTORY_DAYS = 2;    // แสดงออเดอร์ย้อนหลังกี่วัน
+
+    const STATUS = {
+        new:       { label: '🆕 ใหม่',          badge: 'bg-amber-100 text-amber-800' },
+        cooking:   { label: '👨‍🍳 กำลังทำ',     badge: 'bg-orange-100 text-orange-700' },
+        ready:     { label: '✅ พร้อมส่ง/รับ',  badge: 'bg-[#EEF3E6] text-[#153D32]' },
+        done:      { label: '🏁 เสร็จแล้ว',     badge: 'bg-gray-100 text-gray-600' },
+        cancelled: { label: '✖ ยกเลิก',        badge: 'bg-red-100 text-red-700' }
+    };
+    const TABS = [
+        { id: 'active', label: '📋 ต้องจัดการ' },
+        { id: 'new', label: STATUS.new.label },
+        { id: 'cooking', label: STATUS.cooking.label },
+        { id: 'ready', label: STATUS.ready.label },
+        { id: 'done', label: STATUS.done.label },
+        { id: 'cancelled', label: STATUS.cancelled.label },
+        { id: 'all', label: 'ทั้งหมด' }
+    ];
+
+    const app = {
+        pin: '',
+        scope: '',          // 'ALL' = เจ้าของร้าน หรือ id สาขา
+        branches: [],       // [{id, name}]
+        branchFilter: 'all',
+        orders: [],
+        tab: 'active',
+        seen: new Set(),
+        flash: new Set(),
+        firstLoad: true,
+        busy: new Set(),
+        soundOn: true,
+        timer: null,
+        audioCtx: null,
+        lastSync: 0
+    };
+
+    /* ---------- utils ---------- */
+    function esc(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.remove('opacity-0');
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => t.classList.add('opacity-0'), 2500);
+    }
+    function ss(k, v) { try { v === undefined ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (_) {} }
+    function ssGet(k) { try { return sessionStorage.getItem(k); } catch (_) { return null; } }
+    function fmtTime(iso) {
+        const d = new Date(iso);
+        return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
+    }
+    function bangkokDay(d) {
+        return new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+    }
+    function ago(iso) {
+        const m = Math.floor((Date.now() - Date.parse(iso)) / 60000);
+        if (m < 1) return 'เมื่อสักครู่';
+        if (m < 60) return `${m} นาทีที่แล้ว`;
+        const h = Math.floor(m / 60);
+        return h < 24 ? `${h} ชม.ที่แล้ว` : `${Math.floor(h / 24)} วันที่แล้ว`;
+    }
+    function safeMapLink(url) {
+        return /^https:\/\/maps\.google\.com\/\?q=-?[\d.]+,-?[\d.]+$/.test(url || '') ? url : '';
+    }
+
+    async function api(payload) {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'เกิดข้อผิดพลาด');
+        return data;
+    }
+
+    /* ---------- sound ---------- */
+    function beep() {
+        if (!app.soundOn) return;
+        try {
+            app.audioCtx = app.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = app.audioCtx;
+            [0, 0.22, 0.44].forEach((t, i) => {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.value = i === 2 ? 1175 : 880;
+                g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
+                g.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + t + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.18);
+                o.connect(g).connect(ctx.destination);
+                o.start(ctx.currentTime + t);
+                o.stop(ctx.currentTime + t + 0.2);
+            });
+        } catch (_) {}
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+    function toggleSound() {
+        app.soundOn = !app.soundOn;
+        document.getElementById('sound-btn').textContent = app.soundOn ? '🔔' : '🔕';
+        ss('rd_sound', app.soundOn ? '1' : '0');
+        if (app.soundOn) beep();
+        toast(app.soundOn ? 'เปิดเสียงแจ้งเตือนแล้ว' : 'ปิดเสียงแจ้งเตือนแล้ว');
+    }
+
+    /* ---------- auth ---------- */
+    async function login(e) {
+        e.preventDefault();
+        const pin = document.getElementById('pin-input').value.trim();
+        const err = document.getElementById('login-error');
+        const btn = document.getElementById('login-btn');
+        err.classList.add('hidden');
+        if (!API_URL) { err.textContent = 'ยังไม่ได้ตั้งค่า API_URL'; err.classList.remove('hidden'); return; }
+        if (!pin) return;
+        // ปลดล็อกเสียง (เบราว์เซอร์มือถือต้องมีการแตะก่อน)
+        try { app.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+        btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
+        try {
+            const r = await api({ action: 'login', pin });
+            app.pin = pin;
+            app.scope = r.scope;
+            document.getElementById('scope-name').textContent = r.branchName;
+            ss('rd_pin', pin);
+            showApp();
+        } catch (ex) {
+            err.textContent = ex.message;
+            err.classList.remove('hidden');
+        } finally {
+            btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+        }
+    }
+    function logout() {
+        ss('rd_pin');
+        clearInterval(app.timer);
+        location.reload();
+    }
+    function showApp() {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('app-view').classList.remove('hidden');
+        renderTabs();
+        loadOrders(false);
+        clearInterval(app.timer);
+        app.timer = setInterval(() => loadOrders(false), POLL_MS);
+    }
+
+    /* ---------- data ---------- */
+    async function loadOrders(manual) {
+        if (document.hidden && !manual) return;
+        try {
+            const data = await api({ action: 'list', pin: app.pin, days: HISTORY_DAYS });
+            const incoming = data.orders || [];
+            app.scope = data.scope; app.branches = data.branches || [];
+            document.getElementById('scope-name').textContent = app.scope === 'ALL' ? 'ทุกสาขา' : branchName(app.scope);
+            const fresh = incoming.filter(o => !app.seen.has(o.orderId) && o.status === 'new');
+            incoming.forEach(o => app.seen.add(o.orderId));
+            // อย่าทับสถานะที่กำลังบันทึกอยู่
+            app.orders = incoming.map(o => {
+                const local = app.orders.find(x => x.orderId === o.orderId);
+                return local && app.busy.has(o.orderId) ? local : o;
+            });
+            if (!app.firstLoad && fresh.length) {
+                fresh.forEach(o => app.flash.add(o.orderId));
+                beep();
+                toast(`🔔 ออเดอร์ใหม่ ${fresh.length} รายการ`);
+                flashTitle(fresh.length);
+            }
+            app.firstLoad = false;
+            app.lastSync = Date.now();
+            setSync(true);
+            render();
+            if (manual) toast('อัปเดตแล้ว');
+        } catch (ex) {
+            setSync(false, ex.message);
+            if (/รหัส/.test(ex.message)) { toast(ex.message); setTimeout(logout, 1500); }
+            else if (manual) toast('โหลดไม่สำเร็จ: ' + ex.message);
+        }
+    }
+    function setSync(ok, msg) {
+        document.getElementById('live-dot').className = `inline-block w-2 h-2 rounded-full ${ok ? 'bg-green-400' : 'bg-red-400'}`;
+        document.getElementById('sync-text').textContent = ok
+            ? `ออนไลน์ • อัปเดต ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`
+            : `เชื่อมต่อไม่ได้ (${msg || 'ลองใหม่'})`;
+    }
+    let titleTimer = null;
+    function flashTitle(n) {
+        clearInterval(titleTimer);
+        const base = document.title;
+        let on = false, count = 0;
+        titleTimer = setInterval(() => {
+            document.title = on ? base : `🔔 (${n}) ออเดอร์ใหม่!`;
+            on = !on;
+            if (++count > 12) { clearInterval(titleTimer); document.title = base; }
+        }, 800);
+    }
+
+    async function setStatus(orderId, status, confirmText) {
+        if (confirmText && !confirm(confirmText)) return;
+        const o = app.orders.find(x => x.orderId === orderId);
+        if (!o || app.busy.has(orderId)) return;
+        const prev = o.status;
+        o.status = status;
+        app.busy.add(orderId);
+        app.flash.delete(orderId);
+        render();
+        try {
+            await api({ action: 'updateStatus', pin: app.pin, orderId, status });
+            toast(`${orderId} → ${STATUS[status].label}`);
+        } catch (ex) {
+            o.status = prev;
+            toast('บันทึกไม่สำเร็จ: ' + ex.message);
+        } finally {
+            app.busy.delete(orderId);
+            render();
+        }
+    }
+
+    function copyOrder(orderId) {
+        const o = app.orders.find(x => x.orderId === orderId);
+        if (!o) return;
+        const text = [
+            `🧾 ${o.orderId} ${branchName(o.branch)} (${o.mode === 'delivery' ? 'เดลิเวอรี่' : 'รับที่ร้าน'})`,
+            `👤 ${o.name} 📞 ${o.phone}`,
+            o.mode === 'delivery' ? `📍 ${o.address || '-'}${o.gpsLink ? '\n🗺️ ' + o.gpsLink : ''}` : '',
+            ...o.items.map(it => `- ${it.name} x${it.qty}${it.note ? ' (' + it.note + ')' : ''}`),
+            `💰 ฿${o.total} • ${o.payment}`,
+            o.note ? `📝 ${o.note}` : ''
+        ].filter(Boolean).join('\n');
+        navigator.clipboard?.writeText(text).then(() => toast('คัดลอกแล้ว'), () => toast('คัดลอกไม่ได้'));
+    }
+
+    /* ---------- render ---------- */
+    function branchName(id) { return (app.branches.find(b => b.id === id) || {}).name || id; }
+    // ออเดอร์ตามสาขาที่เลือกดู (เจ้าของร้านเลือกได้ / สาขาเห็นแค่ของตัวเองจากระบบอยู่แล้ว)
+    function scoped() { return app.branchFilter === 'all' ? app.orders : app.orders.filter(o => o.branch === app.branchFilter); }
+    function filterOrders() {
+        const list = scoped();
+        if (app.tab === 'all') return list;
+        if (app.tab === 'active') return list.filter(o => ['new', 'cooking', 'ready'].includes(o.status));
+        return list.filter(o => o.status === app.tab);
+    }
+    function renderBranchTabs() {
+        const el = document.getElementById('branch-tabs');
+        if (app.scope !== 'ALL') { el.classList.add('hidden'); return; }
+        el.classList.remove('hidden');
+        const today = bangkokDay(Date.now());
+        const sales = id => app.orders.filter(o => (id === 'all' || o.branch === id) && o.status !== 'cancelled' && bangkokDay(o.createdAt) === today)
+            .reduce((s, o) => s + (o.total || 0), 0);
+        const pending = id => app.orders.filter(o => (id === 'all' || o.branch === id) && o.status === 'new').length;
+        el.innerHTML = [{ id: 'all', name: 'ทุกสาขา' }, ...app.branches].map(b => {
+            const on = app.branchFilter === b.id, p = pending(b.id);
+            return `<button onclick="selectBranchFilter('${b.id}')" class="${on ? 'bg-white text-[#153D32] font-bold' : 'bg-white/15 text-white'} whitespace-nowrap px-3 py-1.5 rounded-xl text-[11px] shrink-0 btn-bounce text-left leading-tight">
+                <span class="block">${esc(b.id === 'all' ? b.name : b.name.replace(/^สาขา/, ''))}${p ? ` <span class="bg-[#BCE54B] text-[#153D32] rounded-full px-1.5 font-bold">${p}</span>` : ''}</span>
+                <span class="block ${on ? 'text-[#7D4427]' : 'text-white/70'} text-[10px]">฿${sales(b.id).toLocaleString()}</span>
+            </button>`;
+        }).join('');
+    }
+    function selectBranchFilter(id) { app.branchFilter = id; render(); }
+
+    function renderTabs() {
+        const counts = {};
+        const base = scoped();
+        base.forEach(o => counts[o.status] = (counts[o.status] || 0) + 1);
+        counts.active = (counts.new || 0) + (counts.cooking || 0) + (counts.ready || 0);
+        counts.all = base.length;
+        document.getElementById('status-tabs').innerHTML = TABS.map(t => {
+            const on = app.tab === t.id;
+            const n = counts[t.id] || 0;
+            return `<button onclick="selectTab('${t.id}')"
+                class="${on ? 'bg-[#BCE54B] text-gray-900 font-bold' : 'bg-white/90 text-gray-700'} whitespace-nowrap px-3 py-1.5 rounded-full text-xs shrink-0 btn-bounce">
+                ${t.label}${n ? ` <span class="ml-0.5 ${on ? 'bg-gray-900/15' : 'bg-gray-200'} rounded-full px-1.5">${n}</span>` : ''}
+            </button>`;
+        }).join('');
+    }
+    function selectTab(id) { app.tab = id; render(); }
+
+    function renderStats() {
+        const today = bangkokDay(Date.now());
+        const todays = scoped().filter(o => bangkokDay(o.createdAt) === today && o.status !== 'cancelled');
+        document.getElementById('stat-count').textContent = todays.length;
+        document.getElementById('stat-sales').textContent = '฿' + todays.reduce((s, o) => s + (o.total || 0), 0).toLocaleString();
+        document.getElementById('stat-pending').textContent = scoped().filter(o => ['new', 'cooking', 'ready'].includes(o.status)).length;
+    }
+
+    function actionButtons(o) {
+        const busy = app.busy.has(o.orderId);
+        const dis = busy ? 'disabled' : '';
+        const id = esc(o.orderId);
+        const big = 'flex-1 py-2.5 rounded-xl text-xs font-bold btn-bounce disabled:opacity-50';
+        const small = 'px-3 py-2.5 rounded-xl text-xs font-medium btn-bounce disabled:opacity-50';
+        const readyText = o.mode === 'delivery' ? '🛵 พร้อมส่ง' : '🛍️ พร้อมให้รับ';
+        switch (o.status) {
+            case 'new': return `
+                <button ${dis} onclick="setStatus('${id}','cooking')" class="${big} bg-[#153D32] text-white">👨‍🍳 รับออเดอร์ / เริ่มทำ</button>
+                <button ${dis} onclick="setStatus('${id}','cancelled','ยกเลิกออเดอร์ ${id}?')" class="${small} bg-[#EEF3E6] text-[#7D4427]">ยกเลิก</button>`;
+            case 'cooking': return `
+                <button ${dis} onclick="setStatus('${id}','ready')" class="${big} bg-[#153D32] text-white">${readyText}</button>
+                <button ${dis} onclick="setStatus('${id}','cancelled','ยกเลิกออเดอร์ ${id}?')" class="${small} bg-[#EEF3E6] text-[#7D4427]">ยกเลิก</button>`;
+            case 'ready': return `
+                <button ${dis} onclick="setStatus('${id}','done')" class="${big} bg-gray-900 text-white">🏁 ${o.mode === 'delivery' ? 'ส่งถึงแล้ว' : 'ลูกค้ารับแล้ว'}</button>
+                <button ${dis} onclick="setStatus('${id}','cooking')" class="${small} bg-gray-100 text-gray-600">ย้อนกลับ</button>`;
+            default: return `
+                <button ${dis} onclick="setStatus('${id}','new','เปิดออเดอร์ ${id} กลับมาเป็นออเดอร์ใหม่?')" class="${small} bg-gray-100 text-gray-600">↩︎ เปิดออเดอร์อีกครั้ง</button>`;
+        }
+    }
+
+    function orderCard(o) {
+        const st = STATUS[o.status] || STATUS.new;
+        const map = safeMapLink(o.gpsLink);
+        const isTransfer = /พร้อมเพย์/.test(o.payment);
+        const itemsHTML = (o.items || []).map(it => `
+            <div class="flex justify-between gap-2 text-sm">
+                <span><span class="font-bold text-[#153D32]">${Number(it.qty)}×</span> ${esc(it.name)}${it.note ? `<span class="block ml-5 text-[12px] font-semibold text-[#7D4427]">↳ ${esc(it.note)}</span>` : ''}</span>
+                <span class="text-gray-500 shrink-0">฿${(Number(it.price) * Number(it.qty)).toLocaleString()}</span>
+            </div>`).join('');
+        const faded = ['done', 'cancelled'].includes(o.status) ? 'opacity-70' : '';
+        return `
+        <article class="bg-white rounded-2xl border ${o.status === 'new' ? 'border-[#BCE54B]' : 'border-gray-100'} shadow-sm overflow-hidden ${faded} ${app.flash.has(o.orderId) ? 'is-new' : ''}">
+            <div class="px-4 pt-3 pb-2 flex items-start gap-2">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-base tracking-wide">${esc(o.orderId)}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold ${st.badge}">${st.label}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold ${o.mode === 'delivery' ? 'bg-sky-100 text-sky-700' : 'bg-violet-100 text-violet-700'}">
+                            ${o.mode === 'delivery' ? '🛵 เดลิเวอรี่' : '🛍️ รับที่ร้าน'}
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-0.5">${fmtTime(o.createdAt)} • ${ago(o.createdAt)}${app.scope === 'ALL' ? ` • <b class="text-[#153D32]">${esc(branchName(o.branch))}</b>` : ''}</p>
+                    ${o.mode === 'delivery' ? (o.distanceCheck === 'ok'
+                        ? `<p class="text-[11px] text-[#153D32] mt-0.5">✓ ระยะส่ง ${Number(o.distanceKm)} กม. (ในรัศมี 5 กม.)</p>`
+                        : `<p class="text-[11px] font-semibold text-red-600 mt-0.5">⚠️ ลูกค้าไม่ได้แนบ GPS — ตรวจที่อยู่ว่าอยู่ในรัศมี 5 กม. ก่อนรับออเดอร์</p>`) : ''}
+                </div>
+                <div class="text-right shrink-0">
+                    <p class="text-lg font-bold text-[#7D4427]">฿${Number(o.total).toLocaleString()}</p>
+                    <p class="text-[10px] ${isTransfer ? 'text-sky-700' : 'text-gray-500'}">${isTransfer ? '📲 โอนพร้อมเพย์' : '💵 เงินสดปลายทาง'}</p>
+                </div>
+            </div>
+
+            <div class="px-4 pb-3 space-y-1.5">${itemsHTML}</div>
+
+            ${o.note ? `<div class="mx-4 mb-3 bg-[#F6EEE8] border border-[#D9BBA8] text-[#7D4427] text-xs rounded-xl px-3 py-2">📝 ${esc(o.note)}</div>` : ''}
+
+            <div class="mx-4 mb-3 bg-gray-50 rounded-xl px-3 py-2 text-xs space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                    <span>👤 <b>${esc(o.name)}</b></span>
+                    <a href="tel:${esc(o.phone.replace(/[^0-9]/g, ''))}" class="text-[#153D32] font-semibold">📞 ${esc(o.phone)}</a>
+                </div>
+                ${o.mode === 'delivery' ? `
+                <div class="flex items-start justify-between gap-2">
+                    <span class="text-gray-600">📍 ${esc(o.address || '-')}</span>
+                    ${map ? `<a href="${esc(map)}" target="_blank" rel="noopener noreferrer" class="text-[#153D32] font-semibold shrink-0">🗺️ แผนที่</a>` : ''}
+                </div>` : ''}
+            </div>
+
+            <div class="px-4 pb-4 flex gap-2">
+                ${actionButtons(o)}
+                <button onclick="copyOrder('${esc(o.orderId)}')" class="px-3 py-2.5 rounded-xl text-xs bg-gray-100 text-gray-600 btn-bounce" title="คัดลอก">📋</button>
+            </div>
+        </article>`;
+    }
+
+    function render() {
+        renderBranchTabs();
+        renderTabs();
+        renderStats();
+        const list = filterOrders();
+        // ต้องจัดการ: เก่าสุดขึ้นก่อน (ทำตามคิว) / หมวดอื่น: ใหม่สุดขึ้นก่อน
+        const sorted = [...list].sort((a, b) => app.tab === 'active' || ['new', 'cooking', 'ready'].includes(app.tab)
+            ? Date.parse(a.createdAt) - Date.parse(b.createdAt)
+            : Date.parse(b.createdAt) - Date.parse(a.createdAt));
+        document.getElementById('order-list').innerHTML = sorted.map(orderCard).join('');
+        document.getElementById('empty-state').classList.toggle('hidden', sorted.length > 0);
+    }
+
+    /* ---------- start ---------- */
+    window.onload = () => {
+        if (!API_URL) document.getElementById('config-warning').classList.remove('hidden');
+        app.soundOn = ssGet('rd_sound') !== '0';
+        document.getElementById('sound-btn').textContent = app.soundOn ? '🔔' : '🔕';
+        const saved = ssGet('rd_pin');
+        if (saved && API_URL) { app.pin = saved; showApp(); }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && app.pin) loadOrders(false); });
+        // อัปเดตข้อความ "x นาทีที่แล้ว"
+        setInterval(() => { if (app.pin) render(); }, 60000);
+    };
+</script>
+</body>
+</html>
