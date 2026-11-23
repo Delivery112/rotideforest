@@ -1958,11 +1958,17 @@ function ic(name, cls) {
         const MORNING_START_HOUR = 8, MORNING_END_HOUR = 12; // มื้อเช้า 08:00–11:59 (เวลาไทย)
         const OPEN_HOUR = 8, CLOSE_HOUR = 20; // รับออเดอร์ 08:00–19:59
         function isShopOpen() { const h = bkkHour(); return h >= OPEN_HOUR && h < CLOSE_HOUR; }
+        // วันที่ขาย (0=อา 1=จ ... 5=ศ 6=ส) แยกตามสาขา — ปาท่องโก๋สายบุรีขายเฉพาะ ศ-ส-อา
+        const SELL_DAYS = { 125: { saiburi: [5, 6, 0] } };
+        const DAY_TH = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+        function bkkDay() { return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Bangkok' }).format(new Date())); }
+        function sellDaysOf(item) { const d = SELL_DAYS[item.id]; return d && state.branch ? d[state.branch] : null; }
         function bkkHour() { return Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Bangkok' }).format(new Date())); }
         function isMorningOpen() { const h = bkkHour(); return h >= MORNING_START_HOUR && h < MORNING_END_HOUR; }
         function inBranch(item) { return !item.branches || !state.branch || item.branches.includes(state.branch); }
         function unavailableReason(item) {
             if (state.soldout && state.soldout.has(item.id)) return 'หมดแล้ว';
+            { const days = sellDaysOf(item); if (days && !days.includes(bkkDay())) return 'ขายเฉพาะ ' + days.map(d => DAY_TH[d]).join('-'); }
             if (item.morning && !isMorningOpen()) return 'ขายถึงเที่ยง';
             if (item.price == null) return 'รอราคา';
             if (item.branches && state.branch && !item.branches.includes(state.branch)) return 'ไม่มีที่สาขานี้';
@@ -2130,7 +2136,8 @@ function ic(name, cls) {
         menuItems.forEach(m => { m.basePrice = m.price; });
         function applyBranchPrices() {
             const over = BRANCH_PRICES[state.branch] || {};
-            menuItems.forEach(m => { m.price = over[m.id] != null ? over[m.id] : m.basePrice; });
+            const live = (state.livePrices && state.livePrices.branch === state.branch) ? state.livePrices.map : {};
+            menuItems.forEach(m => { m.price = live[m.id] != null ? Number(live[m.id]) : over[m.id] != null ? over[m.id] : m.basePrice; });
         }
 
         // สถานะของแอปพลิเคชัน
@@ -2454,7 +2461,15 @@ function ic(name, cls) {
                 const next = new Set((r.ids || []).map(Number));
                 const changed = !state.soldout || next.size !== state.soldout.size || [...next].some(x => !state.soldout.has(x));
                 state.soldout = next;
-                if (changed) { renderMenu(); updateCartUI(); }
+                // ราคาล่าสุดที่สาขาตั้งไว้ในหน้าหลังร้าน
+                let priceChanged = false;
+                if (r.prices && Object.keys(r.prices).length) {
+                    state.livePrices = { branch: b.id, map: r.prices };
+                    const before = menuItems.map(m => m.price).join(',');
+                    applyBranchPrices();
+                    priceChanged = before !== menuItems.map(m => m.price).join(',');
+                }
+                if (changed || priceChanged) { renderMenu(); updateCartUI(); }
             } catch (e) {}
         }
 

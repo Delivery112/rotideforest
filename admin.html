@@ -23,6 +23,13 @@
         .is-new { animation: pulseNew 1.6s ease-in-out 4; }
         .hero-bg { background: linear-gradient(135deg, #153D32 0%, #153D32 100%); }
     </style>
+    <link rel="manifest" href="manifest-admin.json">
+    <link rel="apple-touch-icon" href="images/icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="หลังร้าน Roti">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#153D32">
 </head>
 <body class="text-gray-800 antialiased">
 
@@ -59,7 +66,7 @@
                 </p>
                 <h1 class="text-base font-bold truncate">หลังร้าน • <span id="scope-name">Roti De Forest</span></h1>
             </div>
-            <button onclick="openSoldout()" class="h-9 px-2.5 rounded-xl bg-[#BCE54B] text-[#153D32] text-[11px] font-bold btn-bounce whitespace-nowrap" title="ปิด/เปิดเมนูที่หมด">🍽️ เมนูหมด</button>
+            <button onclick="openSoldout()" class="h-9 px-2.5 rounded-xl bg-[#BCE54B] text-[#153D32] text-[11px] font-bold btn-bounce whitespace-nowrap" title="ปิด/เปิดเมนูที่หมด">🍽️ เมนู/ราคา</button>
             <button onclick="toggleSound()" id="sound-btn" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="เสียงแจ้งเตือน">🔔</button>
             <button onclick="loadOrders(true)" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="รีเฟรช">🔄</button>
             <button onclick="logout()" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce" title="ออกจากระบบ">⏻</button>
@@ -103,8 +110,8 @@
             <div class="flex items-center gap-2">
                 <button onclick="closeSoldout()" class="w-9 h-9 rounded-xl bg-white/15 btn-bounce">←</button>
                 <div class="flex-1 min-w-0">
-                    <h1 class="text-base font-bold">🍽️ เมนูหมด</h1>
-                    <p class="text-[11px] text-white/70">ปิดสวิตช์ = ลูกค้าสั่งไม่ได้ทันที · เปิดกลับเมื่อมีของ</p>
+                    <h1 class="text-base font-bold">🍽️ เมนูหมด / แก้ราคา</h1>
+                    <p class="text-[11px] text-white/70">ปิดสวิตช์ = ของหมด · แตะราคาเพื่อแก้ (มีผลทันทีกับสาขานี้)</p>
                 </div>
             </div>
             <select id="so-branch" onchange="loadSoldoutMenu()" class="w-full rounded-xl px-3 py-2 text-sm text-gray-900"></select>
@@ -532,13 +539,29 @@
             <div class="bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 shadow-sm ${i.soldout ? 'ring-1 ring-red-200' : ''}">
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold ${i.soldout ? 'text-gray-400 line-through' : 'text-gray-800'} truncate">${esc(i.name)}</p>
-                    <p class="text-[11px] ${i.soldout ? 'text-red-600 font-bold' : 'text-gray-400'}">${i.soldout ? 'หมด · ลูกค้าสั่งไม่ได้' : '฿' + i.price}</p>
+                    <p class="text-[11px] flex items-center gap-2">
+                        <button onclick="editPrice(${i.id})" class="px-2 py-0.5 rounded-lg bg-[#EEF3E6] text-[#153D32] font-bold">฿${i.price} ✏️</button>
+                        ${i.soldout ? '<span class="text-red-600 font-bold">หมด · ลูกค้าสั่งไม่ได้</span>' : ''}
+                    </p>
                 </div>
                 <button onclick="toggleSoldout(${i.id})" ${app.busy.has('so' + i.id) ? 'disabled' : ''} aria-label="เปิดปิดเมนู"
                     class="relative w-12 h-7 rounded-full transition ${i.soldout ? 'bg-gray-300' : 'bg-[#153D32]'} disabled:opacity-50 shrink-0">
                     <span class="absolute top-0.5 ${i.soldout ? 'left-0.5' : 'left-[22px]'} w-6 h-6 rounded-full bg-white shadow transition-all"></span>
                 </button>
             </div>`).join('') : '<p class="text-center text-gray-400 py-10 text-sm">ไม่มีเมนูที่ตรงกับเงื่อนไข</p>';
+    }
+    async function editPrice(id) {
+        const it = (app.soItems || []).find(i => i.id === id); if (!it) return;
+        const v = prompt(`ราคาใหม่ของ "${it.name}" (บาท)\nสาขา: ${document.getElementById('so-branch').selectedOptions[0].text}`, it.price);
+        if (v == null) return;
+        const price = Math.round(Number(String(v).replace(/[^0-9.]/g, '')));
+        if (!(price >= 1 && price <= 5000)) return toast('ราคาไม่ถูกต้อง');
+        if (price === it.price) return;
+        const old = it.price; it.price = price; renderSoldout();
+        try {
+            await api({ action: 'setPrice', pin: app.pin, branch: document.getElementById('so-branch').value, id, price });
+            toast(`เปลี่ยนราคา "${it.name}" เป็น ฿${price} แล้ว`);
+        } catch (ex) { it.price = old; renderSoldout(); toast(ex.message); }
     }
     async function toggleSoldout(id) {
         const it = (app.soItems || []).find(i => i.id === id); if (!it) return;
