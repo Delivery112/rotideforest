@@ -1787,7 +1787,10 @@ function ic(name, cls) {
         // ===== เมนูแนะนำ (เลือกได้ 4 เมนู) =====
         // ใส่เลข id ของเมนูที่อยากให้ขึ้นในกล่องเมนูแนะนำ (ดู id ได้ในรายการ menuItems ด้านล่าง)
         // เช่น 1 = โรตีแกงมัสมั่น+ไข่ดาว, 34 = ข้าวไก่ทอดอินโด, 35 = Nasi ayam gepuk M, 36 = นาซิดาแฆ
-        const RECOMMENDED_IDS = [129, 128, 122, 123, 124, 125];
+        // เมนูแนะนำแยกสาขา: ปัตตานี = เมนูใหม่ · สาขาอื่น = มะตะบะ + ข้าวต้ม/โจ๊ก
+        const RECOMMENDED_BY_BRANCH = { pattani: [129, 128, 122, 123, 124, 125] };
+        const RECOMMENDED_DEFAULT = [5, 29, 31, 30, 28, 32];
+        const recommendedIds = () => RECOMMENDED_BY_BRANCH[state.branch] || RECOMMENDED_DEFAULT;
 
         // ===== สาขา =====
         // id ต้องตรงกับ BRANCHES ใน Code.gs / lat,lng ใช้คำนวณรัศมีจัดส่ง
@@ -1992,7 +1995,7 @@ function ic(name, cls) {
         // เมนูอิงจากร้านบน LINE MAN (Roti deforest Pattani สามัคคีสาย ข)
         // แก้ชื่อ/ราคาที่นี่ แล้วแก้ MENU ใน Code.gs ให้ตรงกัน (ใช้ id เดียวกัน)
         const menuItems = [
-            {"id": 128, "name": "โรตีแกงมัสมั่นเนื้อน่องลาย", "category": "roti", "isNew": true, "isBestseller": false, "badge": "", "price": 65, "desc": "Roti Kari Massaman Daging Betis", "image": "images/menu/roti-massaman-beef.jpg", "emoji": "🍛", "bgTint": "bg-amber-50"},
+            {"id": 128, "name": "โรตีแกงมัสมั่นเนื้อน่องลาย", "category": "roti", "isNew": true, "isBestseller": false, "badge": "", "price": 65, "desc": "Roti Kari Massaman Daging Betis", "image": "images/menu/roti-massaman-beef.jpg", "emoji": "🍛", "bgTint": "bg-amber-50", "branches": ["pattani"]},
             {"id": 1, "name": "โรตีแกงมัสมั่น+ไข่ดาว", "category": "roti", "isBestseller": true, "badge": "⭐ แนะนำ", "price": 39, "desc": "", "image": "images/menu/roti-massaman.jpg", "emoji": "🍛", "bgTint": "bg-amber-50"},
             {"id": 2, "name": "โรตีแกงเขียวหวาน+ไข่ดาว", "category": "roti", "isBestseller": false, "badge": "", "price": 39, "desc": "", "image": "images/menu/roti-green-curry.jpg", "emoji": "🍛", "bgTint": "bg-amber-50"},
             {"id": 3, "name": "โรตีแกงสองสหาย+ไข่ดาว", "category": "roti", "isBestseller": false, "badge": "", "price": 49, "desc": "", "image": "images/menu/roti-two-curry.jpg", "emoji": "🍛", "bgTint": "bg-amber-50"},
@@ -2026,7 +2029,7 @@ function ic(name, cls) {
             {"id": 31, "name": "ข้าวต้มไก่", "category": "khaotom", "isBestseller": false, "badge": "", "price": 39, "desc": "", "image": "images/menu/khaotom-chicken.jpg", "emoji": "🍲", "bgTint": "bg-orange-50"},
             {"id": 32, "name": "ข้าวต้มกะเพราเนื้อ", "category": "khaotom", "isBestseller": false, "badge": "", "price": 59, "desc": "", "image": "images/menu/khaotom-kaprao-beef.jpg", "emoji": "🍲", "bgTint": "bg-orange-50"},
             {"id": 33, "name": "ข้าวต้มกะเพราไก่", "category": "khaotom", "isBestseller": false, "badge": "", "price": 49, "desc": "", "image": "images/menu/khaotom-kaprao-chicken.jpg", "emoji": "🍲", "bgTint": "bg-orange-50"},
-            {"id": 129, "name": "ข้าวแกงมัสมั่นเนื้อน่องลาย", "category": "rice", "isNew": true, "isBestseller": false, "badge": "", "price": 75, "desc": "Nasi Kari Massaman Daging Betis Berurat", "image": "images/menu/rice-massaman-beef.jpg", "emoji": "🍛", "bgTint": "bg-amber-50"},
+            {"id": 129, "name": "ข้าวแกงมัสมั่นเนื้อน่องลาย", "category": "rice", "isNew": true, "isBestseller": false, "badge": "", "price": 75, "desc": "Nasi Kari Massaman Daging Betis Berurat", "image": "images/menu/rice-massaman-beef.jpg", "emoji": "🍛", "bgTint": "bg-amber-50", "branches": ["pattani"]},
             {"id": 34, "name": "ข้าวไก่ทอดอินโด (Nasi Ayam Penyet) M", "category": "rice", "isBestseller": true, "badge": "⭐ แนะนำ", "price": 75, "desc": "", "image": "images/menu/nasi-penyet.jpg", "emoji": "🍗", "bgTint": "bg-yellow-50"},
             {"id": 108, "name": "ข้าวไก่ทอดอินโด (Nasi Ayam Penyet) L", "category": "rice", "isBestseller": false, "badge": "", "price": 95, "desc": "", "image": "images/menu/nasi-penyet.jpg", "emoji": "", "bgTint": "bg-yellow-50"},
             {"id": 35, "name": "Nasi ayam gepuk M", "category": "rice", "isBestseller": true, "badge": "⭐ แนะนำ", "price": 109, "desc": "", "image": "images/menu/nasi-gepuk.jpg", "emoji": "🍗", "bgTint": "bg-yellow-50"},
@@ -2304,7 +2307,7 @@ function ic(name, cls) {
         // การ์ดเมนูมีรูป (compact = แบบ 3 คอลัมน์ สำหรับเครื่องดื่ม)
         function createMenuCardHTML(item, compact) {
             const qty = qtyOf(item.id);
-            const reco = RECOMMENDED_IDS.includes(item.id);
+            const reco = recommendedIds().includes(item.id);
             return `
                 <div onclick="openItemSheet(${item.id})" class="cursor-pointer bg-white ${unavailableReason(item) ? 'opacity-60' : ''} ${compact ? 'rounded-xl' : 'rounded-2xl'} shadow-sm border border-gray-100 overflow-hidden flex flex-col ${qty > 0 ? 'ring-2 ring-[#A8C455]' : ''}">
                     <div class="relative ${compact ? 'aspect-[5/4]' : 'aspect-[16/9]'} overflow-hidden">
@@ -2388,14 +2391,14 @@ function ic(name, cls) {
             categories.forEach(cat => {
                 // เมนูแนะนำ: กล่องเด่นสีเหลือง การ์ดเล็ก 2x2
                 if (cat.id === 'bestseller') {
-                    const picks = RECOMMENDED_IDS.map(id => menuItems.find(m => m.id === id)).filter(i => i && inBranch(i));
+                    const picks = recommendedIds().map(id => menuItems.find(m => m.id === id)).filter(i => i && inBranch(i));
                     if (!picks.length) return;
                     html += `
                         <section id="section-bestseller" class="scroll-mt-48">
                             <div class="rounded-2xl p-2.5 bg-[#483F38] shadow-md">
                                 <div class="flex items-center justify-between px-1 mb-2">
                                     <span class="text-sm font-bold text-white inline-flex items-center gap-1.5">${ic(cat.icon, 'w-4 h-4 text-[#A8C455]')}${cat.name}</span>
-                                    <span class="text-[10px] font-medium text-white/70">${cat.subtitle}</span>
+                                    <span class="text-[10px] font-medium text-white/70">${RECOMMENDED_BY_BRANCH[state.branch] ? 'เมนูใหม่ล่าสุด' : 'เมนูเด็ดของร้าน'}</span>
                                 </div>
                                 <div class="flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory p-0.5 pb-1">
                                     ${picks.map(createRecoCardHTML).join('')}
@@ -3146,11 +3149,16 @@ function ic(name, cls) {
                 document.getElementById('track-icon').innerHTML = ic(info.icon, 'w-8 h-8');
                 const bar = document.getElementById('track-progress');
                 bar.style.width = info.pct + '%';
-                bar.className = `h-full rounded-full transition-all duration-500 ${data.status === 'cancelled' ? 'bg-[#EEF3E6]0' : 'bg-[#153D32]'}`;
+                bar.className = `h-full rounded-full transition-all duration-500 ${data.status === 'cancelled' ? 'bg-red-400' : 'bg-[#153D32]'}`;
                 const rs = document.getElementById('receipt-status');
                 rs.textContent = text;
                 rs.className = `font-semibold ${info.color}`;
-                if (data.status === 'done' || data.status === 'cancelled') clearInterval(trackTimer);
+                if (data.status === 'done' || data.status === 'cancelled') {
+                    clearInterval(trackTimer);
+                    // ออเดอร์จบแล้ว (เสร็จ/ยกเลิก): แสดงครั้งนี้ครั้งเดียว แล้วไม่ต้องโชว์อีกตอนเปิดเว็บครั้งหน้า
+                    storageDel('rd_last_order');
+                    setTimeout(() => document.getElementById('track-bar').classList.add('hidden'), 15000);
+                }
                 if (manual) showToast('อัปเดตสถานะแล้ว');
             } catch (err) {
                 if (manual) showToast('ตรวจสถานะไม่ได้ ลองใหม่อีกครั้ง');
