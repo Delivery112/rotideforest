@@ -2461,7 +2461,19 @@ function ic(name, cls) {
                 const next = new Set((r.ids || []).map(Number));
                 const changed = !state.soldout || next.size !== state.soldout.size || [...next].some(x => !state.soldout.has(x));
                 state.soldout = next;
-                // ราคาล่าสุดที่สาขาตั้งไว้ในหน้าหลังร้าน
+                // เมนูที่สาขาเพิ่มเองในหน้าหลังร้าน
+                const customSig = JSON.stringify(r.custom || []);
+                let customChanged = false;
+                if (customSig !== state.customSig) {
+                    customChanged = true;
+                    state.customSig = customSig;
+                    for (let i = menuItems.length - 1; i >= 0; i--) if (menuItems[i].custom) menuItems.splice(i, 1);
+                    (r.custom || []).forEach(c => menuItems.push({
+                        id: Number(c.id), name: c.name, category: c.category, isBestseller: false, badge: '', price: Number(c.price), basePrice: Number(c.price),
+                        desc: '', image: c.image || '', emoji: '🍽️', bgTint: 'bg-amber-50', custom: true, isNew: true,
+                        branches: [c.branch], morning: c.category === 'breakfast'
+                    }));
+                }
                 let priceChanged = false;
                 if (r.prices && Object.keys(r.prices).length) {
                     state.livePrices = { branch: b.id, map: r.prices };
@@ -2469,7 +2481,7 @@ function ic(name, cls) {
                     applyBranchPrices();
                     priceChanged = before !== menuItems.map(m => m.price).join(',');
                 }
-                if (changed || priceChanged) { renderMenu(); updateCartUI(); }
+                if (changed || priceChanged || customChanged) { renderMenu(); updateCartUI(); }
             } catch (e) {}
         }
 
