@@ -116,7 +116,10 @@
             </div>
             <select id="so-branch" onchange="loadSoldoutMenu()" class="w-full rounded-xl px-3 py-2 text-sm text-gray-900"></select>
             <input id="so-search" oninput="renderSoldout()" placeholder="ค้นหาเมนู..." class="w-full rounded-xl px-3 py-2 text-sm text-gray-900">
-            <button onclick="openAddItem()" class="w-full rounded-xl bg-[#BCE54B] text-[#153D32] text-sm font-bold py-2">＋ เพิ่มเมนูใหม่ของสาขานี้</button>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="openAddItem()" class="rounded-xl bg-[#BCE54B] text-[#153D32] text-sm font-bold py-2">＋ เพิ่มเมนูใหม่</button>
+                <button onclick="openCats()" class="rounded-xl bg-white text-[#153D32] text-sm font-bold py-2">🗂️ จัดการหมวดหมู่</button>
+            </div>
             <div class="flex gap-2 text-[11px]">
                 <button onclick="app.soOnlyOff=false;renderSoldout()" id="so-all" class="px-3 py-1 rounded-full bg-white text-[#153D32] font-bold">ทั้งหมด</button>
                 <button onclick="app.soOnlyOff=true;renderSoldout()" id="so-off" class="px-3 py-1 rounded-full bg-white/15">เฉพาะที่หมด</button>
@@ -139,13 +142,32 @@
         <input id="ai-name" placeholder="ชื่อเมนู เช่น โรตีกล้วยไข่" maxlength="60" class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm">
         <div class="flex gap-2">
             <input id="ai-price" type="number" inputmode="numeric" placeholder="ราคา (บาท)" class="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm">
-            <select id="ai-cat" class="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm">
-                <option value="roti">โรตี</option><option value="rice">อาหารจานเดียว</option><option value="khaotom">ข้าวต้ม</option>
-                <option value="snacks">ทานเล่น</option><option value="drinks">เครื่องดื่ม</option><option value="breakfast">มื้อเช้า (ถึงเที่ยง)</option>
-            </select>
+            <select id="ai-cat" class="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm"></select>
         </div>
+        <button type="button" onclick="quickAddCat()" class="text-xs font-semibold text-[#153D32] underline">＋ ไม่มีหมวดที่ต้องการ? เพิ่มหมวดหมู่ใหม่</button>
         <button id="ai-save" onclick="saveItem()" class="w-full rounded-2xl bg-[#153D32] text-white font-bold py-3 disabled:opacity-50">บันทึกเมนู</button>
         <p class="text-[11px] text-gray-400 text-center">เมนูนี้จะขึ้นเฉพาะสาขาที่เลือก ลูกค้าเห็นภายใน 1 นาที</p>
+    </div>
+</div>
+
+<!-- จัดการหมวดหมู่ของสาขา -->
+<div id="cats-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 max-h-[88vh] overflow-y-auto">
+        <div class="flex items-center justify-between"><h2 class="font-bold text-gray-800">🗂️ หมวดหมู่เมนู</h2><button onclick="closeCats()" class="w-8 h-8 rounded-full bg-gray-100">✕</button></div>
+        <p id="cats-branch" class="text-xs text-[#153D32] font-semibold"></p>
+        <div class="flex gap-2">
+            <input id="cat-name" maxlength="30" placeholder="ชื่อหมวดใหม่ เช่น ของหวาน, เมนูพิเศษ" class="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm" onkeydown="if(event.key==='Enter')addCat()">
+            <button id="cat-add-btn" onclick="addCat()" class="px-4 rounded-xl bg-[#153D32] text-white text-sm font-bold disabled:opacity-50">เพิ่ม</button>
+        </div>
+        <div>
+            <p class="text-[11px] font-semibold text-gray-500 mb-1.5">หมวดที่เพิ่มเอง (ลบได้ถ้าไม่มีเมนูในหมวด)</p>
+            <div id="cats-custom" class="space-y-1.5"></div>
+        </div>
+        <div>
+            <p class="text-[11px] font-semibold text-gray-500 mb-1.5">หมวดหลักของร้าน (แก้ไม่ได้)</p>
+            <div id="cats-base" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <p class="text-[11px] text-gray-400 text-center">หมวดใหม่จะขึ้นในหน้าลูกค้าเมื่อมีเมนูในหมวดนั้นแล้ว (ภายใน 1 นาที)</p>
     </div>
 </div>
 
@@ -549,6 +571,7 @@
         try {
             const r = await api({ action: 'menuStatus', pin: app.pin, branch: document.getElementById('so-branch').value });
             app.soItems = r.items || [];
+            app.soCats = r.cats || [];
             renderSoldout();
         } catch (ex) { el.innerHTML = `<p class="text-center text-red-600 py-10 text-sm">${esc(ex.message)}</p>`; }
     }
@@ -566,6 +589,7 @@
                     <p class="text-sm font-semibold ${i.soldout ? 'text-gray-400 line-through' : 'text-gray-800'} truncate">${i.custom ? '<span class="text-[10px] bg-[#E53935] text-white rounded px-1 mr-1 align-middle">เพิ่มเอง</span>' : ''}${esc(i.name)}</p>
                     <p class="text-[11px] flex items-center gap-2">
                         <button onclick="editPrice(${i.id})" class="px-2 py-0.5 rounded-lg bg-[#EEF3E6] text-[#153D32] font-bold">฿${i.price} ✏️</button>
+                        ${i.custom && catName(i.category) ? `<span class="text-gray-400">${esc(catName(i.category))}</span>` : ''}
                         ${i.soldout ? '<span class="text-red-600 font-bold">หมด · ลูกค้าสั่งไม่ได้</span>' : ''}
                         ${i.custom ? `<button onclick="deleteItem(${i.id})" class="px-2 py-0.5 rounded-lg bg-red-50 text-red-600 font-semibold">ลบ</button>` : ''}
                     </p>
@@ -577,6 +601,67 @@
             </div>`).join('') : '<p class="text-center text-gray-400 py-10 text-sm">ไม่มีเมนูที่ตรงกับเงื่อนไข</p>';
     }
 
+    /* ---------- หมวดหมู่ ---------- */
+    const BASE_CATS = [
+        { id: 'roti', name: 'โรตี' }, { id: 'rice', name: 'อาหารจานเดียว' }, { id: 'khaotom', name: 'ข้าวต้ม' },
+        { id: 'snacks', name: 'ทานเล่น' }, { id: 'drinks', name: 'เครื่องดื่ม' }, { id: 'breakfast', name: 'มื้อเช้า (ถึงเที่ยง)' }
+    ];
+    function allCats() { return BASE_CATS.concat((app.soCats || []).map(c => ({ id: c.id, name: c.name, custom: true }))); }
+    function catName(id) { return (allCats().find(c => c.id === id) || {}).name || ''; }
+    function soBranchId() { return document.getElementById('so-branch').value; }
+    function soBranchText() { const o = document.getElementById('so-branch').selectedOptions[0]; return o ? o.text : ''; }
+    function fillCatSelect(selected) {
+        const sel = document.getElementById('ai-cat');
+        const cur = selected || sel.value;
+        sel.innerHTML = BASE_CATS.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')
+            + ((app.soCats || []).length ? `<optgroup label="หมวดที่เพิ่มเอง">${app.soCats.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</optgroup>` : '');
+        if (cur && allCats().some(c => c.id === cur)) sel.value = cur;
+    }
+    function openCats() {
+        document.getElementById('cats-branch').textContent = 'สาขา: ' + soBranchText();
+        document.getElementById('cat-name').value = '';
+        renderCats();
+        document.getElementById('cats-modal').classList.remove('hidden');
+    }
+    function closeCats() { document.getElementById('cats-modal').classList.add('hidden'); }
+    function renderCats() {
+        const used = id => (app.soItems || []).filter(i => i.custom && i.category === id).length;
+        const list = app.soCats || [];
+        document.getElementById('cats-custom').innerHTML = list.length ? list.map(c => `
+            <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                <span class="flex-1 text-sm font-semibold text-gray-800">${esc(c.name)}</span>
+                <span class="text-[11px] text-gray-400">${used(c.id)} เมนู</span>
+                <button onclick="deleteCat('${esc(c.id)}')" class="px-2 py-1 rounded-lg bg-red-50 text-red-600 text-[11px] font-semibold">ลบ</button>
+            </div>`).join('') : '<p class="text-xs text-gray-400">ยังไม่มีหมวดที่เพิ่มเอง</p>';
+        document.getElementById('cats-base').innerHTML = BASE_CATS.map(c => `<span class="px-2.5 py-1 rounded-full bg-[#EEF3E6] text-[#153D32] text-[11px]">${esc(c.name)}</span>`).join('');
+    }
+    async function createCat(name) {
+        const r = await api({ action: 'addCategory', pin: app.pin, branch: soBranchId(), name });
+        app.soCats = r.cats || [];
+        return r.cat;
+    }
+    async function addCat() {
+        const input = document.getElementById('cat-name');
+        const name = input.value.trim();
+        if (!name) return toast('กรุณาใส่ชื่อหมวดหมู่');
+        const btn = document.getElementById('cat-add-btn'); btn.disabled = true;
+        try { await createCat(name); input.value = ''; renderCats(); fillCatSelect(); toast(`เพิ่มหมวด "${name}" แล้ว`); }
+        catch (ex) { toast(ex.message); }
+        finally { btn.disabled = false; }
+    }
+    async function quickAddCat() {
+        const name = (prompt('ชื่อหมวดหมู่ใหม่ (เช่น ของหวาน, เมนูพิเศษ)') || '').trim();
+        if (!name) return;
+        try { const cat = await createCat(name); fillCatSelect(cat.id); toast(`เพิ่มหมวด "${name}" แล้ว`); }
+        catch (ex) { toast(ex.message); }
+    }
+    async function deleteCat(id) {
+        const c = (app.soCats || []).find(x => x.id === id); if (!c) return;
+        if (!confirm(`ลบหมวด "${c.name}" ออกจากสาขานี้?`)) return;
+        try { const r = await api({ action: 'deleteCategory', pin: app.pin, branch: soBranchId(), id }); app.soCats = r.cats || []; renderCats(); fillCatSelect(); toast('ลบหมวดแล้ว'); }
+        catch (ex) { toast(ex.message); }
+    }
+
     /* ---------- เพิ่มเมนูใหม่ ---------- */
     let aiPhoto = '';
     function openAddItem() {
@@ -585,6 +670,7 @@
         ['ai-name', 'ai-price'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('ai-photo').value = ''; aiPhoto = '';
         document.getElementById('ai-preview').innerHTML = '📷 แตะเพื่อเลือกรูป (ไม่ใส่ก็ได้)';
+        fillCatSelect();
         document.getElementById('add-item').classList.remove('hidden');
     }
     function closeAddItem() { document.getElementById('add-item').classList.add('hidden'); }

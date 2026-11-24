@@ -160,9 +160,9 @@
         </header>
 
         <!-- แถบติดตามออเดอร์ล่าสุด -->
-        <div id="track-bar" class="hidden mx-4 mt-4 bg-white border border-[#C6D6A8] rounded-2xl p-3 shadow-xs flex items-center gap-3">
-            <div class="text-[#153D32]" id="track-icon"><span data-ic="receipt" data-cls="w-8 h-8"></span></div>
-            <div class="flex-1 min-w-0">
+        <div id="track-bar" class="hidden mx-4 mt-4 bg-white border-2 border-[#BCE54B] rounded-2xl p-3 shadow-sm flex items-center gap-3">
+            <div class="text-[#153D32] cursor-pointer" id="track-icon" onclick="openMyOrder()"><span data-ic="receipt" data-cls="w-8 h-8"></span></div>
+            <div class="flex-1 min-w-0 cursor-pointer" onclick="openMyOrder()">
                 <p class="text-[11px] text-gray-500">ออเดอร์ล่าสุด <span id="track-id" class="font-semibold text-gray-700"></span></p>
                 <p id="track-status" class="text-sm font-bold text-[#153D32]">กำลังตรวจสอบ...</p>
                 <div class="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -170,7 +170,7 @@
                 </div>
             </div>
             <div class="flex flex-col gap-1 shrink-0">
-                <button onclick="refreshTracking(true)" class="text-[11px] px-2.5 py-1 rounded-full bg-[#EEF3E6] text-[#153D32] font-medium">รีเฟรช</button>
+                <button onclick="openMyOrder()" class="text-[11px] px-2.5 py-1.5 rounded-full bg-[#153D32] text-white font-bold">ดูออเดอร์</button>
                 <button onclick="hideTracking()" class="text-[11px] px-2.5 py-1 rounded-full text-gray-400">ซ่อน</button>
             </div>
         </div>
@@ -363,6 +363,57 @@
                 <div class="p-4 border-t border-gray-100 bg-white">
                     <button onclick="submitOrder()" id="review-confirm" class="disabled:opacity-50 w-full bg-[#06C755] text-white font-bold py-3.5 rounded-2xl shadow-md text-sm btn-bounce">ยืนยันสั่งซื้อ → ส่งเข้า LINE ร้าน</button>
                     <p class="text-[10.5px] text-gray-400 text-center mt-1.5">กดแล้วจะเปิดแชท LINE ร้าน กด "ส่ง" แล้วแนบสลิปในแชทได้เลย</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ออเดอร์ของฉัน: ลูกค้ากลับมาที่หน้าเว็บ ดูรายการที่สั่ง + สถานะ + ส่งสลิป -->
+        <div id="myorder-modal" class="fixed inset-0 z-[95] hidden">
+            <div onclick="closeMyOrder()" class="absolute inset-0 bg-black/60"></div>
+            <div class="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-white rounded-t-3xl max-h-[92vh] flex flex-col shadow-2xl">
+                <div class="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-100">
+                    <h2 class="text-base font-bold text-[#153D32]">ออเดอร์ของฉัน</h2>
+                    <button onclick="closeMyOrder()" aria-label="ปิด" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center"><span data-ic="close" data-cls="w-3.5 h-3.5"></span></button>
+                </div>
+                <div class="px-5 py-4 overflow-y-auto space-y-4">
+                    <div class="text-center">
+                        <p class="text-[11px] text-gray-500">เลขออเดอร์</p>
+                        <p id="mo-id" class="text-2xl font-extrabold text-[#153D32] tracking-wider">-</p>
+                        <p id="mo-meta" class="text-[11.5px] text-gray-500"></p>
+                    </div>
+
+                    <!-- สถานะเป็นขั้นตอน -->
+                    <div class="bg-[#F5F7EF] rounded-2xl p-3">
+                        <p id="mo-status" class="text-center text-sm font-bold text-[#153D32] mb-3">กำลังตรวจสอบ...</p>
+                        <div id="mo-steps" class="grid grid-cols-4 gap-1 text-center"></div>
+                    </div>
+
+                    <!-- ขั้นตอนจ่ายเงิน/ส่งสลิป (แสดงเมื่อร้านยังไม่เริ่มทำ) -->
+                    <div id="mo-pay" class="space-y-2">
+                        <div class="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-900 leading-relaxed">
+                            <b>ร้านจะเริ่มทำเมื่อได้รับสลิปแล้ว</b><br>
+                            1) กด <b>ดู QR โอนเงิน</b> แล้วสแกนจ่าย<br>
+                            2) กด <b>ส่งสลิปทาง LINE</b> → กด "ส่ง" ในแชท → กดปุ่ม <b>แนบสลิป</b> แล้วเลือกรูปสลิป
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openPayFromMyOrder()" class="py-3 rounded-xl bg-[#153D32] text-white text-[13px] font-bold btn-bounce">💳 ดู QR โอนเงิน</button>
+                            <a id="mo-line-btn" href="#" class="py-3 rounded-xl bg-[#06C755] text-white text-[13px] font-bold flex items-center justify-center btn-bounce">📎 ส่งสลิปทาง LINE</a>
+                        </div>
+                    </div>
+
+                    <!-- รายการที่สั่ง -->
+                    <div class="border border-gray-100 rounded-2xl p-3">
+                        <p class="text-xs font-bold text-gray-700 mb-2">รายการที่สั่ง</p>
+                        <div id="mo-items" class="space-y-1.5 text-[13px]"></div>
+                        <div class="flex justify-between border-t border-dashed border-gray-200 mt-2 pt-2 text-sm font-bold">
+                            <span>ยอดโอน</span><span id="mo-total" class="text-[#7D4427]">฿0</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pb-2">
+                        <button onclick="refreshTracking(true)" class="py-2.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-semibold">🔄 อัปเดตสถานะ</button>
+                        <button onclick="closeMyOrder()" class="py-2.5 rounded-xl bg-[#EEF3E6] text-[#153D32] text-xs font-semibold">🛒 สั่งเพิ่ม / ดูเมนู</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1931,12 +1982,17 @@ function ic(name, cls) {
         function showPayPageFromUrl() {
             const q = new URLSearchParams(location.search);
             if (!q.has('pay')) return false;
-            const b = BRANCHES.find(x => x.id === q.get('b')); const t = Number(q.get('t')) || 0;
+            return openPayPage(q.get('pay'), q.get('b'), Number(q.get('t')) || 0, true);
+        }
+        // ข้อความที่ลูกค้ากดส่งในแชท → บอทตอบการ์ด "แนบสลิป" และจำว่าสลิปถัดไปเป็นของออเดอร์นี้
+        function slipChatUrl(orderId) { return lineChatUrl(orderId ? `🧾 สั่งออเดอร์ ${orderId}` : ''); }
+        function openPayPage(id, branchId, t, fromUrl) {
+            const b = BRANCHES.find(x => x.id === branchId);
             if (!b || !t) return false;
-            const id = q.get('pay');
+            const old = document.getElementById('pay-page'); if (old) old.remove();
             const el = document.createElement('div');
             el.id = 'pay-page';
-            el.className = 'fixed inset-0 z-[90] bg-black/50 flex items-end sm:items-center justify-center';
+            el.className = 'fixed inset-0 z-[96] bg-black/50 flex items-end sm:items-center justify-center';
             el.innerHTML = `<div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 max-h-[92vh] overflow-y-auto">
                     <div class="text-center">
                         <p class="text-[11px] text-gray-500">โอนเงินออเดอร์</p>
@@ -1945,13 +2001,17 @@ function ic(name, cls) {
                     </div>
                     ${promptpayBoxHTML(b, t)}
                     <div class="rounded-xl bg-[#06C755]/10 border border-[#06C755]/40 px-3 py-2 text-[12px] text-[#0B5E2E] font-semibold">
-                        1) แคปหน้าจอ QR แล้วสแกนจ่ายในแอปธนาคาร<br>2) กลับไปแชท LINE ร้าน แล้วส่งสลิปพร้อมเลขออเดอร์
+                        1) แคปหน้าจอ QR แล้วสแกนจ่ายในแอปธนาคาร<br>2) กดปุ่มเขียว → กด "ส่ง" ในแชท → กด <b>แนบสลิป</b> แล้วเลือกรูปสลิป
                     </div>
-                    <a href="${lineChatUrl('')}" class="w-full py-3 bg-[#06C755] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5">${ic('chat', 'w-4 h-4')}<span>กลับไปแชท LINE เพื่อส่งสลิป</span></a>
-                    <button onclick="document.getElementById('pay-page').remove(); history.replaceState(null, '', location.pathname); openBranchPicker(!currentBranch());" class="w-full py-2 text-xs text-gray-400">ไปหน้าเมนู</button>
+                    <a href="${slipChatUrl(id)}" class="w-full py-3 bg-[#06C755] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-1.5">${ic('chat', 'w-4 h-4')}<span>ส่งสลิปทาง LINE (ออเดอร์ ${esc(id || '')})</span></a>
+                    <button onclick="closePayPage(${fromUrl ? 'true' : 'false'})" class="w-full py-2 text-xs text-gray-400">${fromUrl ? 'ไปหน้าเมนู' : 'กลับ'}</button>
                 </div>`;
             document.body.appendChild(el);
             return true;
+        }
+        function closePayPage(fromUrl) {
+            const el = document.getElementById('pay-page'); if (el) el.remove();
+            if (fromUrl) { history.replaceState(null, '', location.pathname); if (!openMyOrderIfActive()) openBranchPicker(!currentBranch()); }
         }
 
         // ===== เมนูมื้อเช้า / เมนูเฉพาะสาขา =====
@@ -2194,7 +2254,7 @@ function ic(name, cls) {
         // สร้างแถบหมวดหมู่ด้านบน
         function renderCategoryTabs() {
             const container = document.getElementById('category-tabs');
-            container.innerHTML = categories.map(cat => {
+            container.innerHTML = categories.filter(cat => !cat.custom || menuItems.some(i => i.category === cat.id && inBranch(i))).map(cat => {
                 const isActive = state.activeCategory === cat.id && !state.searchQuery;
                 const activeClass = isActive 
                     ? 'bg-[#BCE54B] text-[#153D32] font-bold shadow-sm' 
@@ -2461,6 +2521,18 @@ function ic(name, cls) {
                 const next = new Set((r.ids || []).map(Number));
                 const changed = !state.soldout || next.size !== state.soldout.size || [...next].some(x => !state.soldout.has(x));
                 state.soldout = next;
+                // หมวดหมู่ที่สาขาเพิ่มเองในหน้าหลังร้าน (แทรกก่อนหมวดเครื่องดื่ม)
+                const catSig = JSON.stringify(r.cats || []);
+                let catChanged = false;
+                if (catSig !== state.catSig) {
+                    catChanged = true;
+                    state.catSig = catSig;
+                    for (let i = categories.length - 1; i >= 0; i--) if (categories[i].custom) categories.splice(i, 1);
+                    const at = categories.findIndex(c => c.id === 'drinks');
+                    const extra = (r.cats || []).filter(c => c && c.id && c.name)
+                        .map(c => ({ id: String(c.id), icon: 'plate', name: String(c.name), subtitle: 'เมนูพิเศษของสาขา', custom: true }));
+                    categories.splice(at < 0 ? categories.length : at, 0, ...extra);
+                }
                 // เมนูที่สาขาเพิ่มเองในหน้าหลังร้าน
                 const customSig = JSON.stringify(r.custom || []);
                 let customChanged = false;
@@ -2481,7 +2553,8 @@ function ic(name, cls) {
                     applyBranchPrices();
                     priceChanged = before !== menuItems.map(m => m.price).join(',');
                 }
-                if (changed || priceChanged || customChanged) { renderMenu(); updateCartUI(); }
+                if (catChanged || customChanged) renderCategoryTabs();
+                if (changed || priceChanged || customChanged || catChanged) { renderMenu(); updateCartUI(); }
             } catch (e) {}
         }
 
@@ -3068,7 +3141,8 @@ function ic(name, cls) {
                     cardSent = !!data.cardSent;
                     order.total = data.total; // ยอดที่ระบบคิดจริง
                     sentToSystem = true;
-                    storageSet('rd_last_order', { orderId, at: Date.now() });
+                    storageSet('rd_last_order', { orderId, at: Date.now(), total: data.total, branch: order.branch, mode: order.mode,
+                        items: order.items.map(it => ({ name: it.name, price: it.price, qty: it.qty, note: it.note || '' })) });
                 } catch (err) {
                     showToast((err && err.message) || 'เชื่อมต่อระบบไม่ได้ กรุณาส่งออเดอร์ทาง LINE');
                 } finally {
@@ -3143,16 +3217,27 @@ function ic(name, cls) {
             state.cart = [];
             renderMenu();
             updateCartUI();
+            if (activeOrder()) openMyOrder();
         }
 
-        // ===== ติดตามสถานะออเดอร์ =====
+        // ===== ติดตามสถานะออเดอร์ / ออเดอร์ของฉัน =====
         let trackTimer = null;
+        let lastStatus = null;      // สถานะล่าสุดจากระบบ
+        let myOrderAutoShown = false;
+
+        function activeOrder() {
+            const last = storageGet('rd_last_order');
+            if (!last || !last.orderId) return null;
+            // เก็บไว้ 24 ชม. / ออเดอร์ที่จบแล้ว แสดงต่ออีก 2 ชม.
+            const tooOld = Date.now() - last.at > 24 * 3600 * 1000;
+            const finishedLongAgo = last.finishedAt && Date.now() - last.finishedAt > 2 * 3600 * 1000;
+            if (tooOld || finishedLongAgo) { storageDel('rd_last_order'); return null; }
+            return last;
+        }
 
         function startTracking() {
-            const last = storageGet('rd_last_order');
-            if (!API_URL || !last || !last.orderId) return;
-            // ไม่แสดงออเดอร์ที่เก่ากว่า 12 ชั่วโมง
-            if (Date.now() - last.at > 12 * 3600 * 1000) { storageDel('rd_last_order'); return; }
+            const last = activeOrder();
+            if (!API_URL || !last) return;
             document.getElementById('track-id').textContent = last.orderId;
             document.getElementById('track-bar').classList.remove('hidden');
             refreshTracking(false);
@@ -3161,15 +3246,15 @@ function ic(name, cls) {
         }
 
         async function refreshTracking(manual) {
-            const last = storageGet('rd_last_order');
+            const last = activeOrder();
             if (!API_URL || !last) return;
             try {
                 const res = await fetch(`${API_URL}?action=status&id=${encodeURIComponent(last.orderId)}`);
                 const data = await res.json();
                 if (!data.ok) throw new Error(data.error);
+                lastStatus = data.status;
                 const info = STATUS_INFO[data.status] || STATUS_INFO.new;
-                let text = info.text;
-                if (data.status === 'ready') text = data.mode === 'delivery' ? 'พร้อมแล้ว กำลังออกไปส่ง' : 'พร้อมแล้ว มารับที่ร้านได้เลย';
+                const text = statusText(data.status, data.mode || last.mode);
                 const st = document.getElementById('track-status');
                 st.textContent = text;
                 st.className = `text-sm font-bold ${info.color}`;
@@ -3180,11 +3265,16 @@ function ic(name, cls) {
                 const rs = document.getElementById('receipt-status');
                 rs.textContent = text;
                 rs.className = `font-semibold ${info.color}`;
+                renderMyOrder();
                 if (data.status === 'done' || data.status === 'cancelled') {
                     clearInterval(trackTimer);
-                    // ออเดอร์จบแล้ว (เสร็จ/ยกเลิก): แสดงครั้งนี้ครั้งเดียว แล้วไม่ต้องโชว์อีกตอนเปิดเว็บครั้งหน้า
-                    storageDel('rd_last_order');
-                    setTimeout(() => document.getElementById('track-bar').classList.add('hidden'), 15000);
+                    if (!last.finishedAt) { last.finishedAt = Date.now(); storageSet('rd_last_order', last); }
+                }
+                // ลูกค้ากลับมาหน้าเว็บ และออเดอร์ยังไม่จบ → เปิดหน้า "ออเดอร์ของฉัน" ให้เลย (ครั้งเดียว)
+                if (!manual && !myOrderAutoShown && ['new', 'cooking', 'ready'].includes(data.status)
+                    && !document.getElementById('pay-page') && document.getElementById('receipt-modal').classList.contains('hidden')) {
+                    myOrderAutoShown = true;
+                    openMyOrder();
                 }
                 if (manual) showToast('อัปเดตสถานะแล้ว');
             } catch (err) {
@@ -3192,10 +3282,79 @@ function ic(name, cls) {
             }
         }
 
+        function statusText(status, mode) {
+            if (status === 'new') return 'รอโอนเงิน / รอร้านยืนยัน';
+            if (status === 'ready') return mode === 'delivery' ? 'พร้อมแล้ว กำลังออกไปส่ง 🛵' : 'พร้อมแล้ว มารับที่ร้านได้เลย';
+            return (STATUS_INFO[status] || STATUS_INFO.new).text;
+        }
+
+        function renderMyOrder() {
+            const last = activeOrder();
+            if (!last) return;
+            const b = BRANCHES.find(x => x.id === last.branch) || currentBranch() || {};
+            const mode = last.mode || 'delivery';
+            const status = lastStatus || 'new';
+            const t = new Date(last.at);
+            document.getElementById('mo-id').textContent = last.orderId;
+            document.getElementById('mo-meta').textContent = [b.name, mode === 'delivery' ? 'เดลิเวอรี่' : 'รับที่ร้าน',
+                'สั่งเวลา ' + t.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'].filter(Boolean).join(' · ');
+            const info = STATUS_INFO[status] || STATUS_INFO.new;
+            const st = document.getElementById('mo-status');
+            st.textContent = lastStatus ? statusText(status, mode) : 'กำลังตรวจสอบสถานะ...';
+            st.className = `text-center text-sm font-bold mb-3 ${status === 'cancelled' ? 'text-red-600' : info.color}`;
+            const steps = [
+                { key: 'new', label: 'รับออเดอร์' },
+                { key: 'cooking', label: 'กำลังทำ' },
+                { key: 'ready', label: mode === 'delivery' ? 'กำลังส่ง' : 'พร้อมรับ' },
+                { key: 'done', label: 'เสร็จสิ้น' }
+            ];
+            const idx = status === 'cancelled' ? -1 : steps.findIndex(x => x.key === status);
+            document.getElementById('mo-steps').innerHTML = status === 'cancelled'
+                ? '<p class="col-span-4 text-xs text-red-600 font-semibold">ออเดอร์นี้ถูกยกเลิก หากโอนเงินแล้วกรุณาติดต่อร้าน' + (b.phone ? ' โทร ' + esc(b.phone) : '') + '</p>'
+                : steps.map((x, i) => `
+                    <div>
+                        <div class="mx-auto w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${i < idx ? 'bg-[#153D32] text-white' : i === idx ? 'bg-[#BCE54B] text-[#153D32] ring-4 ring-[#BCE54B]/40' : 'bg-gray-200 text-gray-400'}">${i < idx ? '✓' : i + 1}</div>
+                        <p class="text-[10.5px] mt-1 ${i <= idx ? 'text-[#153D32] font-semibold' : 'text-gray-400'}">${x.label}</p>
+                    </div>`).join('');
+            document.getElementById('mo-pay').classList.toggle('hidden', status !== 'new');
+            document.getElementById('mo-line-btn').href = slipChatUrl(last.orderId);
+            const items = last.items || [];
+            document.getElementById('mo-items').innerHTML = items.length
+                ? items.map(it => `<div class="flex justify-between gap-2"><span><b class="text-[#153D32]">${Number(it.qty)}×</b> ${esc(it.name)}${it.note ? `<span class="block ml-5 text-[11px] text-[#7D4427]">↳ ${esc(it.note)}</span>` : ''}</span><span class="text-gray-500 shrink-0">฿${(Number(it.price) * Number(it.qty)).toLocaleString()}</span></div>`).join('')
+                : '<p class="text-xs text-gray-400">ดูรายการได้ในแชท LINE ร้าน</p>';
+            document.getElementById('mo-total').textContent = last.total != null ? '฿' + Number(last.total).toLocaleString() : '-';
+        }
+
+        function openMyOrder() {
+            if (!activeOrder()) return;
+            renderMyOrder();
+            document.getElementById('myorder-modal').classList.remove('hidden');
+            if (!lastStatus) refreshTracking(false);
+        }
+        function closeMyOrder() {
+            document.getElementById('myorder-modal').classList.add('hidden');
+            if (!currentBranch()) openBranchPicker(true);
+        }
+        // ใช้ตอนเปิดหน้าเว็บ: มีออเดอร์ค้างอยู่ → เปิดหน้าออเดอร์แทนหน้าเลือกสาขา
+        function openMyOrderIfActive() {
+            const last = activeOrder();
+            if (!API_URL || !last || last.finishedAt) return false;
+            myOrderAutoShown = true;
+            openMyOrder();
+            return true;
+        }
+        function openPayFromMyOrder() {
+            const last = activeOrder();
+            if (!last) return;
+            if (!openPayPage(last.orderId, last.branch, last.total, false)) showToast('ไม่พบข้อมูลยอดโอน กรุณาดูในแชท LINE ร้าน');
+        }
+
         function hideTracking() {
             clearInterval(trackTimer);
             storageDel('rd_last_order');
+            lastStatus = null;
             document.getElementById('track-bar').classList.add('hidden');
+            closeMyOrder();
         }
 
         // เติมชื่อ/เบอร์/ที่อยู่ที่เคยกรอกไว้
@@ -3227,7 +3386,7 @@ function ic(name, cls) {
             // ทุกครั้งที่เข้าเว็บ ให้เลือกสาขาก่อน (สาขาที่เคยสั่งจะขึ้นไว้บนสุด)
             const b = currentBranch();
             if (b) document.getElementById('branch-label').textContent = b.name;
-            if (!showPayPageFromUrl()) openBranchPicker(!b);
+            if (!showPayPageFromUrl() && !openMyOrderIfActive()) openBranchPicker(!b);
             initLiff();
             loadSoldout();
 
