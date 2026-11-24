@@ -1904,7 +1904,7 @@ function ic(name, cls) {
 
         // ===== LIFF: เปิดหน้าสั่งอาหารในแอป LINE → บอทส่งการ์ดโอนเงินให้เองโดยลูกค้าไม่ต้องกดส่ง =====
         // ใส่ LIFF ID (เช่น '2001234567-AbCdEfGh') หลังสร้าง LIFF ใน LINE Developers · เว้นว่าง = ใช้แบบเดิม
-        const LIFF_ID = '';
+        const LIFF_ID = '2012777706-cNTkWV7U';
         let liffReady = false;
         function liffIdToken() { try { return liffReady && liff.isLoggedIn() ? (liff.getIDToken() || '') : ''; } catch (e) { return ''; } }
         async function initLiff() {
@@ -1919,7 +1919,7 @@ function ic(name, cls) {
 
         // ===== ส่งออเดอร์เข้าแชท LINE ร้าน =====
         // ใส่ Basic ID ของ LINE OA ร้าน (ขึ้นต้นด้วย @ ดูได้ที่มุมซ้ายบนของ LINE OA Manager) เช่น '@123abcde'
-        const LINE_OA_ID = '@667swyuo';
+        const LINE_OA_ID = '@143vhlci';
         function lineChatUrl(text) {
             if (LINE_OA_ID) return 'https://line.me/R/oaMessage/' + encodeURIComponent(LINE_OA_ID) + '/' + (text ? '?' + encodeURIComponent(text) : '');
             return text ? 'https://line.me/R/share?text=' + encodeURIComponent(text) : 'https://lin.ee/6gB6s9c';
